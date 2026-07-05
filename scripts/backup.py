@@ -59,6 +59,20 @@ def _check_rclone() -> bool:
     return True
 
 
+def _yadisk_config_file(token: str) -> Path:
+    """Create a temporary rclone config file for Yandex Disk."""
+    import tempfile, json
+    token_json = json.dumps({
+        "access_token": token,
+        "token_type": "bearer",
+        "refresh_token": token,
+    })
+    cf = tempfile.NamedTemporaryFile(mode="w", suffix=".conf", delete=False)
+    cf.write(f"[yadisk]\ntype = yandex\nclient_id =\nclient_secret =\ntoken = {token_json}\n")
+    cf.close()
+    return Path(cf.name)
+
+
 def _load_env(env_file: Path = Path(".env")) -> dict:
     env = {}
     if env_file.exists():
@@ -110,17 +124,20 @@ def cmd_create(args):
     s3_secret = env.get("cloudru/s3/secret-key") or os.environ.get("AWS_SECRET_ACCESS_KEY")
     s3_bucket = env.get("cloudru/s3/bucket") or backup_cfg.get("s3", {}).get("bucket", "mais-agency-backup")
     s3_endpoint = env.get("cloudru/s3/endpoint") or backup_cfg.get("s3", {}).get("endpoint", "https://s3.cloud.ru")
+    s3_region = backup_cfg.get("s3", {}).get("region", "ru-central-1")
     tenant_id = env.get("cloudru/s3/tenant-id")
     if tenant_id and s3_key and ":" not in s3_key:
         s3_key = f"{tenant_id}:{s3_key}"
 
     if s3_key and s3_secret:
-        s3_repo = f"s3:{s3_endpoint}/{s3_bucket}"
+        s3_host = s3_endpoint.replace("https://", "").replace("http://", "")
+        s3_repo = f"s3:{s3_host}/{s3_bucket}"
         s3_env = {
             "RESTIC_REPOSITORY": s3_repo,
             "RESTIC_PASSWORD": restic_pass,
             "AWS_ACCESS_KEY_ID": s3_key,
             "AWS_SECRET_ACCESS_KEY": s3_secret,
+            "AWS_DEFAULT_REGION": s3_region,
         }
 
         rc = _run(["restic", "snapshots"], env=s3_env, timeout=30).returncode
@@ -180,16 +197,14 @@ def _yadisk_backup(sources: list, restic_pass: str, token: str, remote_path: str
         print("   ⏭️  rclone не установлен, пропускаю Yandex Disk")
         return None
 
-    import tempfile
-    config_file = tempfile.NamedTemporaryFile(mode="w", suffix=".conf", delete=False)
-    config_file.write(f"[yadisk]\ntype = yandex\ntoken = {token}\n")
-    config_file.close()
+    config_file = _yadisk_config_file(token)
 
     repo = f"rclone:yadisk:{remote_path}"
     env = {
         "RESTIC_REPOSITORY": repo,
         "RESTIC_PASSWORD": restic_pass,
-        "RCLONE_CONFIG": config_file.name,
+        "RCLONE_CONFIG": str(config_file),
+        "PATH": os.environ.get("PATH", "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"),
     }
 
     rc = _run(["restic", "snapshots"], env=env, timeout=30).returncode
@@ -230,16 +245,19 @@ def cmd_list(args):
     s3_secret = env.get("cloudru/s3/secret-key") or os.environ.get("AWS_SECRET_ACCESS_KEY")
     s3_endpoint = env.get("cloudru/s3/endpoint") or backup_cfg.get("s3", {}).get("endpoint", "https://s3.cloud.ru")
     s3_bucket = env.get("cloudru/s3/bucket") or backup_cfg.get("s3", {}).get("bucket", "mais-agency-backup")
+    s3_region = backup_cfg.get("s3", {}).get("region", "ru-central-1")
     tenant_id = env.get("cloudru/s3/tenant-id")
     if tenant_id and s3_key and ":" not in s3_key:
         s3_key = f"{tenant_id}:{s3_key}"
 
     if s3_key and s3_secret:
+        s3_host = s3_endpoint.replace("https://", "").replace("http://", "")
         s3_env = {
-            "RESTIC_REPOSITORY": f"s3:{s3_endpoint}/{s3_bucket}",
+            "RESTIC_REPOSITORY": f"s3:{s3_host}/{s3_bucket}",
             "RESTIC_PASSWORD": restic_pass,
             "AWS_ACCESS_KEY_ID": s3_key,
             "AWS_SECRET_ACCESS_KEY": s3_secret,
+            "AWS_DEFAULT_REGION": s3_region,
         }
         result = _run(["restic", "snapshots"], env=s3_env)
         print(f"\n☁️  S3:")
@@ -248,14 +266,12 @@ def cmd_list(args):
     ya_token = env.get("yandex/disk/token") or os.environ.get("YA_DISK_TOKEN")
     ya_path = env.get("yandex/disk/path") or backup_cfg.get("yandex_disk", {}).get("path", "/backups/vps-fortify")
     if ya_token and _check_rclone():
-        import tempfile
-        cf = tempfile.NamedTemporaryFile(mode="w", suffix=".conf", delete=False)
-        cf.write(f"[yadisk]\ntype = yandex\ntoken = {ya_token}\n")
-        cf.close()
+        cf = _yadisk_config_file(ya_token)
         ya_env = {
             "RESTIC_REPOSITORY": f"rclone:yadisk:{ya_path}",
             "RESTIC_PASSWORD": restic_pass,
-            "RCLONE_CONFIG": cf.name,
+            "RCLONE_CONFIG": str(cf),
+            "PATH": os.environ.get("PATH", "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"),
         }
         result = _run(["restic", "snapshots"], env=ya_env)
         print(f"\n🌐  Yandex Disk:")
@@ -283,28 +299,29 @@ def cmd_restore(args):
         s3_secret = env.get("cloudru/s3/secret-key") or os.environ.get("AWS_SECRET_ACCESS_KEY")
         s3_bucket = env.get("cloudru/s3/bucket") or backup_cfg.get("s3", {}).get("bucket", "mais-agency-backup")
         s3_endpoint = env.get("cloudru/s3/endpoint") or backup_cfg.get("s3", {}).get("endpoint", "https://s3.cloud.ru")
+        s3_region = backup_cfg.get("s3", {}).get("region", "ru-central-1")
         tenant_id = env.get("cloudru/s3/tenant-id")
         if tenant_id and s3_key and ":" not in s3_key:
             s3_key = f"{tenant_id}:{s3_key}"
-        repo = f"s3:{s3_endpoint}/{s3_bucket}"
+        s3_host = s3_endpoint.replace("https://", "").replace("http://", "")
+        repo = f"s3:{s3_host}/{s3_bucket}"
         restic_env = {
             "RESTIC_REPOSITORY": repo,
             "RESTIC_PASSWORD": restic_pass,
             "AWS_ACCESS_KEY_ID": s3_key,
             "AWS_SECRET_ACCESS_KEY": s3_secret,
+            "AWS_DEFAULT_REGION": s3_region,
         }
     elif source == "yadisk":
         ya_token = env.get("yandex/disk/token") or os.environ.get("YA_DISK_TOKEN")
         ya_path = env.get("yandex/disk/path") or backup_cfg.get("yandex_disk", {}).get("path", "/backups/vps-fortify")
-        import tempfile
-        cf = tempfile.NamedTemporaryFile(mode="w", suffix=".conf", delete=False)
-        cf.write(f"[yadisk]\ntype = yandex\ntoken = {ya_token}\n")
-        cf.close()
+        cf = _yadisk_config_file(ya_token)
         repo = f"rclone:yadisk:{ya_path}"
         restic_env = {
             "RESTIC_REPOSITORY": repo,
             "RESTIC_PASSWORD": restic_pass,
-            "RCLONE_CONFIG": cf.name,
+            "RCLONE_CONFIG": str(cf),
+            "PATH": os.environ.get("PATH", "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"),
         }
     else:
         local_path = backup_cfg.get("local_path", "/var/backups/vps-fortify")
@@ -402,14 +419,12 @@ def cmd_setup(args):
     ya_token = env.get("yandex/disk/token") or os.environ.get("YA_DISK_TOKEN")
     ya_path = env.get("yandex/disk/path") or backup_cfg.get("yandex_disk", {}).get("path", "/backups/vps-fortify")
     if ya_token and restic_pass and _check_rclone():
-        import tempfile
-        cf = tempfile.NamedTemporaryFile(mode="w", suffix=".conf", delete=False)
-        cf.write(f"[yadisk]\ntype = yandex\ntoken = {ya_token}\n")
-        cf.close()
+        cf = _yadisk_config_file(ya_token)
         ya_env = {
             "RESTIC_REPOSITORY": f"rclone:yadisk:{ya_path}",
             "RESTIC_PASSWORD": restic_pass,
-            "RCLONE_CONFIG": cf.name,
+            "RCLONE_CONFIG": str(cf),
+            "PATH": os.environ.get("PATH", "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"),
         }
         rc = _run(["restic", "snapshots"], env=ya_env, timeout=30).returncode
         if rc != 0:

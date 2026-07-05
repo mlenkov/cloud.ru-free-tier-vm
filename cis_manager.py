@@ -332,16 +332,19 @@ class CISManager:
         }
     
     def _run_cmd(self, cmd: str, check: bool = True) -> Tuple[int, str, str]:
-        """Безопасное выполнение команд через shlex.split()"""
+        """Выполнение команд с поддержкой shell pipe'ов"""
         try:
-            args = shlex.split(cmd)
-            result = subprocess.run(
-                args,
-                capture_output=True,
-                text=True,
-                timeout=10,
-                check=check
-            )
+            use_shell = "|" in cmd or ">" in cmd or "<" in cmd or "&&" in cmd
+            if use_shell:
+                result = subprocess.run(
+                    cmd, capture_output=True, text=True, timeout=10,
+                    check=check, shell=True
+                )
+            else:
+                args = shlex.split(cmd)
+                result = subprocess.run(
+                    args, capture_output=True, text=True, timeout=10, check=check
+                )
             return result.returncode, result.stdout.strip(), result.stderr.strip()
         except subprocess.TimeoutExpired:
             return -1, "", "Command timeout"

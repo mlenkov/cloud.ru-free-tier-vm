@@ -32,7 +32,7 @@ backup:
     endpoint: "https://s3.cloud.ru"
     bucket: "mais-agency-backup"
     prefix: "app.mais.agency"
-    region: "ru-central1"
+    region: "ru-central-1"
 
   # Yandex Disk (offsite)
   yandex_disk:

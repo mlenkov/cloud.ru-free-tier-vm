@@ -35,7 +35,8 @@ def cmd_sync(args):
     print(f"🔑 Организация: {client.auth.org_id}")
 
     old_date = datetime(2020, 1, 1, tzinfo=timezone.utc)
-    secrets = client.sync(last_synced_date=old_date)
+    result = client.sync(last_synced_date=old_date)
+    secrets = result if isinstance(result, list) else result.secrets
 
     if not secrets:
         print("⚠️  Секреты не найдены")
@@ -61,7 +62,8 @@ def cmd_get(args):
     client = _create_client()
 
     old_date = datetime(2020, 1, 1, tzinfo=timezone.utc)
-    secrets = client.sync(last_synced_date=old_date)
+    result = client.sync(last_synced_date=old_date)
+    secrets = result if isinstance(result, list) else result.secrets
 
     for s in secrets:
         if s.key == args.key:
@@ -84,7 +86,8 @@ def cmd_list(args):
     client = _create_client()
 
     old_date = datetime(2020, 1, 1, tzinfo=timezone.utc)
-    secrets = client.sync(last_synced_date=old_date)
+    result = client.sync(last_synced_date=old_date)
+    secrets = result if isinstance(result, list) else result.secrets
 
     if not secrets:
         print("⚠️  Секреты не найдены")
