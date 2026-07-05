@@ -1,0 +1,39 @@
+# Backup 3-2-1 Configuration
+# Copy 1: Local   — /var/backups/vps-fortify
+# Copy 2: Offsite — cloud.ru S3 Object Storage
+# Copy 3: Remote  — Yandex Disk
+
+backup:
+  strategy: 3-2-1
+
+  # Что бекапим
+  sources:
+    - /etc
+    - /home
+    - /var/www
+    - /var/log
+    - /root
+
+  # Локальное хранилище (restic)
+  local_path: /var/backups/vps-fortify
+
+  # Расписание (cron)
+  schedule: "0 2 * * *"
+
+  # Retention политика
+  retention:
+    keep_daily: 7
+    keep_weekly: 4
+    keep_monthly: 3
+    keep_yearly: 1
+
+  # cloud.ru S3 Object Storage
+  s3:
+    endpoint: "https://s3.cloud.ru"
+    bucket: "mais-agency-backup"
+    prefix: "app.mais.agency"
+    region: "ru-central1"
+
+  # Yandex Disk (offsite)
+  yandex_disk:
+    path: "/backups/vps-fortify"

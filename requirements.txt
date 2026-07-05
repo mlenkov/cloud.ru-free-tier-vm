@@ -1,0 +1,15 @@
+# VPS Fortify - DevOps Dependencies
+# Установка: pip install -r requirements.txt
+
+# CIS конфигурация (YAML)
+pyyaml>=6.0
+
+# Bitwarden Secrets Manager SDK (чтение секретов, расшифровка)
+bws-sdk>=1.0.0
+
+# REST API (backup.py, secrets.py)
+requests>=2.31.0
+
+# Системные пакеты (устанавливаются отдельно):
+# restic  — резервное копирование (apt install restic)
+# rclone  — Yandex Disk backend для restic (apt install rclone)

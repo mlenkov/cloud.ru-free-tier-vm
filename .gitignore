@@ -1,0 +1,23 @@
+# Secrets
+.env
+
+# CIS audit data
+cis_data/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Temp
+.gigacode/
+*.tar.gz
+/tmp/rclone_yadisk_*

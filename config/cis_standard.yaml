@@ -1,0 +1,184 @@
+# CIS Debian 12 Level 1 Server Configuration
+# Для GitVerse DevOps AI Employee
+
+cis_version: "Debian 12 Level 1"
+compliance_target: 95
+compliance_critical_threshold: 80
+
+# Общие настройки
+settings:
+  backup_enabled: true
+  backup_retention_days: 30
+  log_level: INFO
+  dry_run: false
+
+# Категории проверок
+checks:
+  # Сеть
+  network:
+    - cis_id: "3.1"
+      description: "IP forwarding отключен"
+      required: true
+      fix_command: "sysctl net.ipv4.ip_forward=0"
+    
+    - cis_id: "3.2"
+      description: "Packet redirect sending отключен"
+      required: true
+      fix_command: "sysctl net.ipv4.conf.all.send_redirects=0"
+    
+    - cis_id: "3.3"
+      description: "Source routed packets отключены"
+      required: true
+      fix_command: "sysctl net.ipv4.conf.all.accept_source_route=0"
+    
+    - cis_id: "3.4"
+      description: "ICMP redirects отключены"
+      required: true
+      fix_command: "sysctl net.ipv4.conf.all.accept_redirects=0"
+    
+    - cis_id: "3.5"
+      description: "Reverse path filtering включен"
+      required: true
+      fix_command: "sysctl net.ipv4.conf.all.rp_filter=1"
+    
+    - cis_id: "3.6"
+      description: "Suspicious packets logging включен"
+      required: true
+      fix_command: "sysctl net.ipv4.conf.all.log_martians=1"
+
+  # SSH Security
+  ssh:
+    - cis_id: "5.2"
+      description: "SSH: вход root отключен"
+      required: true
+      fix_command: "PermitRootLogin no"
+    
+    - cis_id: "5.3"
+      description: "SSH: MaxAuthTries <= 4"
+      required: true
+      fix_command: "MaxAuthTries 3"
+    
+    - cis_id: "5.4"
+      description: "SSH: IgnoreRhosts включен"
+      required: true
+      fix_command: "IgnoreRhosts yes"
+    
+    - cis_id: "5.5"
+      description: "SSH: HostBasedAuthentication отключен"
+      required: true
+      fix_command: "HostBasedAuthentication no"
+    
+    - cis_id: "5.6"
+      description: "SSH: PermitEmptyPasswords отключен"
+      required: true
+      fix_command: "PermitEmptyPasswords no"
+    
+    - cis_id: "5.7"
+      description: "SSH: X11Forwarding отключен"
+      required: true
+      fix_command: "X11Forwarding no"
+
+  # Аутентификация
+  authentication:
+    - cis_id: "6.1"
+      description: "PASS_MAX_DAYS <= 365"
+      required: true
+      fix_command: "PASS_MAX_DAYS 365"
+    
+    - cis_id: "6.2"
+      description: "PASS_MIN_DAYS >= 1"
+      required: true
+      fix_command: "PASS_MIN_DAYS 1"
+    
+    - cis_id: "6.3"
+      description: "UMASK >= 027"
+      required: true
+      fix_command: "UMASK 027"
+
+  # Файловые права
+  file_permissions:
+    - cis_id: "7.1"
+      description: "/etc/passwd права = 644"
+      required: true
+      fix_command: "chmod 644 /etc/passwd"
+    
+    - cis_id: "7.2"
+      description: "/etc/shadow права <= 640"
+      required: true
+      fix_command: "chmod 640 /etc/shadow"
+    
+    - cis_id: "7.3"
+      description: "/etc/group права = 644"
+      required: true
+      fix_command: "chmod 644 /etc/group"
+    
+    - cis_id: "7.4"
+      description: "/etc/ssh/sshd_config права <= 600"
+      required: true
+      fix_command: "chmod 600 /etc/ssh/sshd_config"
+
+  # Fail2ban
+  fail2ban:
+    - cis_id: "8.1"
+      description: "Fail2ban установлен и запущен"
+      required: true
+      fix_command: "apt-get install fail2ban && systemctl enable fail2ban"
+    
+    - cis_id: "8.2"
+      description: "Fail2ban: SSH защита активна"
+      required: true
+      fix_command: "jail.local sshd enabled"
+    
+    - cis_id: "8.3"
+      description: "Fail2ban: бан после 3 попыток"
+      required: true
+      fix_command: "maxretry = 3"
+
+  # Обновления
+  updates:
+    - cis_id: "9.1"
+      description: "Unattended-upgrades установлен"
+      required: true
+      fix_command: "apt-get install unattended-upgrades"
+    
+    - cis_id: "9.2"
+      description: "Unattended-upgrades настроен"
+      required: true
+      fix_command: "20auto-upgrades config"
+    
+    - cis_id: "10.1"
+      description: "Needrestart установлен"
+      required: true
+      fix_command: "apt-get install needrestart"
+
+# Секреты (обязательно из Bitwarden)
+secrets:
+  required:
+    - name: "bitwarden_url"
+      secret_key: "bitwarden/credentials/url"
+      description: "URL для Bitwarden API"
+    
+    - name: "bitwarden_master_password"
+      secret_key: "bitwarden/credentials/master_password"
+      description: "Master password для Bitwarden"
+    
+    - name: "gitverse_token"
+      secret_key: "gitverse/credentials/token"
+      description: "Токен для GitVerse API"
+
+# Скрипты автоматизации
+scripts:
+  pre_setup:
+    - "scripts/pre_setup.sh"
+  post_setup:
+    - "scripts/post_setup.sh"
+  docs_generation:
+    - "scripts/docs_generator.py"
+
+# Уведомления
+notifications:
+  on_failure:
+    - "slack"
+    - "email"
+  on_success:
+    - "slack"
