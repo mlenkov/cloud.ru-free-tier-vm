@@ -29,14 +29,18 @@ Write connection info to `docs/connection.md` (gitignored). **Never write BW_ACC
 Execute step by step. Wait for each to complete before the next.
 
 ```
-1. Run: ./deploy.sh   (интерактивный ввод: IP, SSH user, ключ, токен)
+1. SSH to server, clone repo, run deploy.sh:
+   ssh -i <key> <user>@<ip>
+   git clone https://github.com/mlenkov/cloud.ru-free-tier-vm.git
+   cd cloud.ru-free-tier-vm
+   BW_ACCESS_TOKEN="xxx" sudo bash deploy.sh
 2. Verify output: 59/59 PASS, 100% compliance
 3. Confirm backup system is configured (cron @ 2am)
 4. Update docs/ with results
 5. Report completion
 ```
 
-Use `./deploy.sh` (interactive) as the automation engine. It handles:
+Use `./deploy.sh` as the automation engine. It handles:
 - Dependency installation
 - Secrets sync from Bitwarden
 - CIS audit + fix (all 59 checks)
@@ -82,7 +86,7 @@ python3 scripts/docs_generator.py   # Generate server docs
 - `BW_ACCESS_TOKEN` — never write to disk, env var only
 - `README.md` (root) — public, no server data
 - `docs/SERVER.md` (server) — live audit data, gitignored
-- `docs/connection.md` — IP/user/key (gitignored), updated by deploy.sh interactively
+- `docs/connection.md` — IP/user/key (gitignored), updated manually
 
 ## 6. Troubleshooting
 
@@ -91,4 +95,4 @@ python3 scripts/docs_generator.py   # Generate server docs
 | dpkg conffile prompt | Re-run with `DEBIAN_FRONTEND=noninteractive` (already in deploy.sh) |
 | pip externally-managed | deploy.sh uses `--break-system-packages` |
 | aideinit timeout | Runs in background, check `/var/lib/aide/aide.db*` after 5 min |
-| Private repo clone | deploy.sh uses tar+scp from local, not git clone |
+| git clone fails | Check SSH key agent or use HTTPS with GITHUB_TOKEN |
