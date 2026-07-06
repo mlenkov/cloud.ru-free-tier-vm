@@ -2,31 +2,61 @@
 # cloud.ru-free-tier-vm — Server provisioning & CIS audit
 # Repo: https://github.com/mlenkov/cloud.ru-free-tier-vm
 #
-# Usage (from local repo):
-#   ./deploy.sh <hostname>
+# Usage (interactive):
+#   ./deploy.sh
+#
+# Usage (non-interactive, from repo root):
+#   SSH_USER=root SSH_KEY=~/.ssh/key BW_ACCESS_TOKEN="xxx" ./deploy.sh <hostname>
 #
 # Usage (directly on server):
 #   sudo bash deploy.sh
-#
-# One-liner (from repo root):
-#   BW_ACCESS_TOKEN="xxx" ./deploy.sh <hostname>
 
 set -euo pipefail
 export DEBIAN_FRONTEND=noninteractive
 
 SERVER="${1:-}"
 
+# === Interactive mode (local, no args) ===
+if [ -z "$SERVER" ] && [ -z "${_DEPLOY_SERVER_MODE:-}" ]; then
+    echo "===== cloud.ru-free-tier-vm — Interactive Setup ====="
+    read -rp "Server IP/hostname: " SERVER
+    default_user="${SSH_USER:-root}"
+    read -rp "SSH user [$default_user]: " input_user
+    SSH_USER="${input_user:-$default_user}"
+    read -rp "SSH key path (optional): " SSH_KEY
+    read -rsp "BW_ACCESS_TOKEN: " BW_ACCESS_TOKEN
+    echo
+
+    mkdir -p docs
+    cat > docs/connection.md <<EOF
+# Server Connection
+
+- **IP**: ${SERVER}
+- **User**: ${SSH_USER}
+- **SSH Key**: ${SSH_KEY:-}
+EOF
+
+    export SSH_USER SSH_KEY BW_ACCESS_TOKEN
+    exec bash "$0" "$SERVER"
+fi
+
 # === Local mode: scp entire repo + deploy ===
 if [ -n "$SERVER" ]; then
     SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-    echo "===== Deploying to $SERVER ====="
+    SSH_USER="${SSH_USER:-root}"
+    SSH_DEST="$SSH_USER@$SERVER"
+    SSH_OPTS="${SSH_KEY:+-i $SSH_KEY}"
+
+    echo "===== Deploying to ${SSH_DEST} ====="
     ssh-keygen -R "$SERVER" 2>/dev/null || true
-    ssh "$SERVER" "sudo rm -rf cloud.ru-free-tier-vm && mkdir cloud.ru-free-tier-vm"
+
+    ssh $SSH_OPTS "$SSH_DEST" "sudo rm -rf cloud.ru-free-tier-vm && mkdir cloud.ru-free-tier-vm"
     tar cz --exclude='.git' --exclude='.opencode' --exclude='__pycache__' \
       --exclude='.env' --exclude='cis_data' --exclude='.github' \
-      -C "$SCRIPT_DIR" . | ssh "$SERVER" "tar xz -C cloud.ru-free-tier-vm"
+      -C "$SCRIPT_DIR" . | ssh $SSH_OPTS "$SSH_DEST" "tar xz -C cloud.ru-free-tier-vm"
     echo "===== Running provisioning ====="
-    ssh -t "$SERVER" "BW_ACCESS_TOKEN=\"${BW_ACCESS_TOKEN:-}\" sudo bash cloud.ru-free-tier-vm/deploy.sh"
+    ssh -t $SSH_OPTS "$SSH_DEST" \
+      "BW_ACCESS_TOKEN=\"${BW_ACCESS_TOKEN:-}\" _DEPLOY_SERVER_MODE=1 sudo bash cloud.ru-free-tier-vm/deploy.sh"
     exit $?
 fi
 

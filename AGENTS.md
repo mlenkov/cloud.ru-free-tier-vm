@@ -29,15 +29,14 @@ Write connection info to `docs/connection.md` (gitignored). **Never write BW_ACC
 Execute step by step. Wait for each to complete before the next.
 
 ```
-1. Update docs/connection.md with server IP, SSH user, key path
-2. Run: ./deploy.sh <ip>   (BW_ACCESS_TOKEN passed via env)
-3. Verify output: 59/59 PASS, 100% compliance
-4. Confirm backup system is configured (cron @ 2am)
-5. Update docs/ with results
-6. Report completion
+1. Run: ./deploy.sh   (интерактивный ввод: IP, SSH user, ключ, токен)
+2. Verify output: 59/59 PASS, 100% compliance
+3. Confirm backup system is configured (cron @ 2am)
+4. Update docs/ with results
+5. Report completion
 ```
 
-Use `./deploy.sh <ip>` as the automation engine. It handles:
+Use `./deploy.sh` (interactive) as the automation engine. It handles:
 - Dependency installation
 - Secrets sync from Bitwarden
 - CIS audit + fix (all 59 checks)
@@ -83,6 +82,7 @@ python3 scripts/docs_generator.py   # Generate server docs
 - `BW_ACCESS_TOKEN` — never write to disk, env var only
 - `README.md` (root) — public, no server data
 - `docs/SERVER.md` (server) — live audit data, gitignored
+- `docs/connection.md` — IP/user/key (gitignored), updated by deploy.sh interactively
 
 ## 6. Troubleshooting
 
