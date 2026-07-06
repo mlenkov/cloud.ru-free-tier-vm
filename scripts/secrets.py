@@ -6,6 +6,7 @@ AI Employee: управление секретами для VPS
 
 import argparse
 import os
+import re
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -46,14 +47,13 @@ def cmd_sync(args):
 
     env_data = {}
     for s in secrets:
-        env_data[s.key] = s.value
-        print(f"  ✅ {s.key}")
+        env_name = re.sub(r'[^a-zA-Z0-9]', '_', s.key).upper()
+        env_data[env_name] = s.value
+        print(f"  ✅ {s.key} → {env_name}")
 
     output_path = Path(args.output) if args.output else Path(".env")
-    output_path.write_text(
-        "\n".join(f"{k}={v}" for k, v in env_data.items()) + "\n",
-        encoding="utf-8",
-    )
+    lines = [f"{k}='{v.replace(\"'\", \"'\\\\''\")}'" for k, v in env_data.items()]
+    output_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
     output_path.chmod(0o600)
     print(f"\n✅ Секреты сохранены в {output_path} (chmod 600)")
 

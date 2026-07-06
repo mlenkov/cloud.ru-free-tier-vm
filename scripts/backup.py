@@ -79,7 +79,12 @@ def _load_env(env_file: Path = Path(".env")) -> dict:
         for line in env_file.read_text().strip().split("\n"):
             if "=" in line:
                 k, v = line.split("=", 1)
-                env[k.strip()] = v.strip()
+                k = k.strip()
+                v = v.strip().strip("'\"")
+                env[k] = v
+                nk = k.replace('/', '_').replace('-', '_').upper()
+                if nk != k:
+                    env[nk] = v
     return env
 
 

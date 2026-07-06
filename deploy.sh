@@ -69,7 +69,7 @@ if [ -n "${BW_ACCESS_TOKEN:-}" ]; then
 fi
 
 if [ -f .env ]; then
-    set -a; source .env; set +a
+    set -a; source .env 2>/dev/null; set +a
 fi
 
 python3 cis_manager.py audit --format json
