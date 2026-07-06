@@ -63,4 +63,6 @@ ssh -o ServerAliveInterval=60 -i ~/.ssh/MacBuka mais@91.224.87.211
 cd ~/cloud.ru-free-tier-vm && git pull
 sudo BW_ACCESS_TOKEN="<токен>" python3 scripts/test_deploy.py
 ```
-Скрипт сделает снепшот → deploy → audit → rollback → verify → re-deploy → отчёт.
+Скрипт сделает снепшот → deploy → CIS fix loop → audit → rollback → verify → re-deploy → отчёт.
+
+Цикл fix (до 5 итераций): audit → если < 100% → fix → audit → repeat. Число итераций и результат каждой — в отчёте.

@@ -23,6 +23,7 @@ PROJECT_DIR = Path(__file__).resolve().parent.parent
 SNAPSHOT_DIR = PROJECT_DIR / ".test_snapshot"
 SNAPSHOT_FILE = SNAPSHOT_DIR / "snapshot.json"
 CIS_DATA_DIR = PROJECT_DIR / "cis_data"
+MAX_FIX_ITERATIONS = 5
 
 DEPLOY_PACKAGES = [
     "git", "python3-pip", "restic", "rclone", "curl",
@@ -304,6 +305,36 @@ def run_deploy():
         return None
 
 
+def run_cis_fix():
+    print("\n🔧 Running CIS fix...")
+    _run_cmd(f"cd {PROJECT_DIR} && python3 cis_manager.py fix --force", timeout=120)
+
+
+def run_fix_loop(max_iterations: int = MAX_FIX_ITERATIONS) -> list:
+    """Run audit → fix → audit loop until 100% compliance. Returns iteration history."""
+    fix_iters = []
+    attempts = 0
+    while attempts < max_iterations:
+        attempts += 1
+        audit_before = run_audit()
+        score = audit_before.get("compliance_score", 0)
+        entry = {"attempt": attempts, "audit_before_fix": audit_before}
+        print_audit(f"Iteration {attempts} (before fix):", audit_before)
+        if score >= 100:
+            entry["status"] = "already_100"
+            fix_iters.append(entry)
+            break
+        run_cis_fix()
+        audit_after = run_audit()
+        entry["audit_after_fix"] = audit_after
+        entry["status"] = "fixed" if audit_after.get("compliance_score", 0) >= 100 else "partial"
+        print_audit(f"Iteration {attempts} (after fix):", audit_after)
+        fix_iters.append(entry)
+        if audit_after.get("compliance_score", 0) >= 100:
+            break
+    return fix_iters
+
+
 def print_audit(label: str, d: dict):
     print(f"\n  {label}")
     print(f"    PASS: {d.get('passed',0):<5}  FAIL: {d.get('failed',0):<5}  "
@@ -311,7 +342,7 @@ def print_audit(label: str, d: dict):
           f"Compliance: {d.get('compliance_score',0):.1f}%")
 
 
-def final_report(snap_before, audit_before, audit_deploy, snap_after, audit_rb=None):
+def final_report(snap_before, audit_before, audit_deploy, snap_after, audit_rb=None, fix_iters=None):
     print("\n" + "=" * 65)
     print("  DEPLOY PIPELINE TEST REPORT")
     print("=" * 65)
@@ -325,6 +356,13 @@ def final_report(snap_before, audit_before, audit_deploy, snap_after, audit_rb=N
         print_audit("After rollback:", audit_rb)
     print(f"\n  Δ Passed: {audit_deploy['passed'] - audit_before['passed']:+d}")
     print(f"  Δ Compliance: {audit_deploy['compliance_score'] - audit_before['compliance_score']:+.1f}%")
+    if fix_iters:
+        print(f"\n  ── CIS Fix Loop ({len(fix_iters)} iteration(s)) ──")
+        for it in fix_iters:
+            before = it.get("audit_before_fix", {}).get("compliance_score", 0)
+            after = it.get("audit_after_fix", {}).get("compliance_score", 0) if "audit_after_fix" in it else before
+            status = it.get("status", "")
+            print(f"    #{it['attempt']}: {before:.1f}% → {after:.1f}%  ({status})")
     print("\n  ── Changes Applied ──")
     diff = snap_before.diff_text(snap_after)
     for line in diff.split("\n"):
@@ -340,7 +378,10 @@ def final_report(snap_before, audit_before, audit_deploy, snap_after, audit_rb=N
     report_path.write_text(json.dumps({
         "timestamp": datetime.now().isoformat(),
         "audit_before": audit_before, "audit_after_deploy": audit_deploy,
-        "audit_after_rollback": audit_rb, "changes": diff,
+        "audit_after_rollback": audit_rb,
+        "fix_iterations": len(fix_iters) if fix_iters else 0,
+        "fix_iteration_details": fix_iters or [],
+        "changes": diff,
     }, indent=2, ensure_ascii=False))
     print(f"  Report: {report_path}")
 
@@ -350,13 +391,14 @@ def cmd_full(args):
     ab = run_audit()
     print_audit("Before deploy", ab)
     run_deploy()
+    fix_iters = run_fix_loop()
     ad = run_audit()
-    print_audit("After deploy", ad)
+    print_audit("After deploy + fix", ad)
     sa = Snapshot().capture()
     sb.restore()
     ar = run_audit()
     print_audit("After rollback", ar)
-    final_report(sb, ab, ad, sa, ar)
+    final_report(sb, ab, ad, sa, ar, fix_iters)
     print("\n🚀 Re-deploying to restore working state...")
     run_deploy()
     af = run_audit()
@@ -375,9 +417,10 @@ def cmd_deploy(args):
     ab = run_audit()
     print_audit("Before deploy", ab)
     run_deploy()
+    fix_iters = run_fix_loop()
     ad = run_audit()
-    print_audit("After deploy", ad)
-    final_report(sb, ab, ad, Snapshot().capture())
+    print_audit("After deploy + fix", ad)
+    final_report(sb, ab, ad, Snapshot().capture(), fix_iters=fix_iters)
 
 
 def cmd_verify(args):
