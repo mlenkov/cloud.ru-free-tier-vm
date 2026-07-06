@@ -393,7 +393,7 @@ def cmd_status(args):
             print(f"   {l.strip()}")
     else:
         systemd = _run(["systemctl", "list-timers", "--all"], timeout=10)
-        if "backup" in systemd.stdout:
+        if "backup" in systemd.stdout and "dpkg-db-backup" not in systemd.stdout:
             print("✅ Systemd timer: настроен")
         else:
             print("⚠️  Backup не настроен в cron/systemd")
