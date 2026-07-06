@@ -5,7 +5,7 @@
 # Usage (interactive):
 #   ./deploy.sh
 #
-# Usage (non-interactive, from repo root):
+# Usage (non-interactive):
 #   SSH_USER=root SSH_KEY=~/.ssh/key BW_ACCESS_TOKEN="xxx" ./deploy.sh <hostname>
 #
 # Usage (directly on server):
@@ -50,7 +50,7 @@ if [ -n "$SERVER" ]; then
     echo "===== Deploying to ${SSH_DEST} ====="
     ssh-keygen -R "$SERVER" 2>/dev/null || true
 
-    ssh $SSH_OPTS "$SSH_DEST" "sudo rm -rf cloud.ru-free-tier-vm && mkdir cloud.ru-free-tier-vm"
+    ssh $SSH_OPTS "$SSH_DEST" "rm -rf cloud.ru-free-tier-vm && mkdir cloud.ru-free-tier-vm"
     tar cz --exclude='.git' --exclude='.opencode' --exclude='__pycache__' \
       --exclude='.env' --exclude='cis_data' --exclude='.github' \
       -C "$SCRIPT_DIR" . | ssh $SSH_OPTS "$SSH_DEST" "tar xz -C cloud.ru-free-tier-vm"
