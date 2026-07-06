@@ -50,6 +50,9 @@ if [ -n "$SERVER" ]; then
     echo "===== Deploying to ${SSH_DEST} ====="
     ssh-keygen -R "$SERVER" 2>/dev/null || true
 
+    echo "→ Accepting host key..."
+    ssh -o StrictHostKeyChecking=accept-new -o ConnectTimeout=5 $SSH_OPTS "$SSH_DEST" true 2>/dev/null || true
+
     echo "→ Testing SSH connection..."
     if ! ssh -o BatchMode=yes -o ConnectTimeout=5 $SSH_OPTS "$SSH_DEST" true; then
         echo "❌ SSH connection failed."
