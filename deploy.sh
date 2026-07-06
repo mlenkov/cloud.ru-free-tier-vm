@@ -3,14 +3,14 @@
 # Repo: https://github.com/mlenkov/cloud.ru-free-tier-vm
 #
 # Usage:
-#   BW_ACCESS_TOKEN="xxx" sudo bash deploy.sh
+#   sudo BW_ACCESS_TOKEN="xxx" bash deploy.sh
 #
 # Or from SSH:
 #   ssh user@host
 #   sudo apt update && sudo apt install -y git
 #   git clone https://github.com/mlenkov/cloud.ru-free-tier-vm.git
 #   cd cloud.ru-free-tier-vm
-#   BW_ACCESS_TOKEN="xxx" sudo bash deploy.sh
+#   sudo BW_ACCESS_TOKEN="xxx" bash deploy.sh
 
 set -euo pipefail
 export DEBIAN_FRONTEND=noninteractive
@@ -56,6 +56,14 @@ cd "$PROJECT_DIR"
 pip3 install --break-system-packages -q -r requirements.txt 2>/dev/null || \
 PIP_REQUIRE_VIRTUALENV=false pip3 install -q -r requirements.txt
 
+if [ -z "${BW_ACCESS_TOKEN:-}" ]; then
+    echo "⚠️  BW_ACCESS_TOKEN не задан. Секреты не синхронизируются."
+    echo "   Введите токен сейчас или нажмите Enter чтобы пропустить:"
+    read -rsp "   BW_ACCESS_TOKEN: " BW_ACCESS_TOKEN
+    echo
+    export BW_ACCESS_TOKEN
+fi
+
 if [ -n "${BW_ACCESS_TOKEN:-}" ]; then
     python3 scripts/secrets.py sync
 fi
@@ -66,10 +74,11 @@ fi
 
 python3 cis_manager.py audit --format json
 python3 cis_manager.py fix --force
-python3 cis_manager.py audit --format json
 
-# Ensure fail2ban is running (fix sometimes doesn't start it)
+# Ensure fail2ban is running before final audit
 systemctl enable --now fail2ban 2>/dev/null || true
+
+python3 cis_manager.py audit --format json
 
 # Don't exit on compliance fail — let backup + docs run
 python3 scripts/check_compliance.py --threshold 95 || true
