@@ -14,7 +14,7 @@
 
 2. Запусти deploy.sh с BW_ACCESS_TOKEN:
    ```bash
-   BW_ACCESS_TOKEN="xxx" sudo bash deploy.sh
+   sudo BW_ACCESS_TOKEN="xxx" bash deploy.sh
    ```
 
 Что делает: устанавливает зависимости → синхронизирует секреты из Bitwarden → CIS аудит (59 проверок) → исправление → настройка 3-2-1 бэкапа → генерация документации.

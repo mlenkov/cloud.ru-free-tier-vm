@@ -34,7 +34,7 @@ Execute step by step. Wait for each to complete before the next.
    sudo apt update && sudo apt install -y git
    git clone https://github.com/mlenkov/cloud.ru-free-tier-vm.git
    cd cloud.ru-free-tier-vm
-   BW_ACCESS_TOKEN="xxx" sudo bash deploy.sh
+   sudo BW_ACCESS_TOKEN="xxx" bash deploy.sh
 2. Verify output: 59/59 PASS, 100% compliance
 3. Confirm backup system is configured (cron @ 2am)
 4. Update docs/ with results

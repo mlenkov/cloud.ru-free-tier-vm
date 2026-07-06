@@ -16,8 +16,9 @@ set -euo pipefail
 export DEBIAN_FRONTEND=noninteractive
 
 # === Server mode: must run as root ===
+# Pass BW_ACCESS_TOKEN explicitly through sudo (env var BEFORE sudo is lost)
 if [ "$EUID" -ne 0 ]; then
-    exec sudo bash "$0" "$@"
+    exec sudo BW_ACCESS_TOKEN="${BW_ACCESS_TOKEN:-}" bash "$0" "$@"
 fi
 
 ORIGINAL_USER="${SUDO_USER:-$(who am i | awk "{print \$1}")}"
@@ -66,6 +67,9 @@ fi
 python3 cis_manager.py audit --format json
 python3 cis_manager.py fix --force
 python3 cis_manager.py audit --format json
+
+# Ensure fail2ban is running (fix sometimes doesn't start it)
+systemctl enable --now fail2ban 2>/dev/null || true
 
 # Don't exit on compliance fail — let backup + docs run
 python3 scripts/check_compliance.py --threshold 95 || true
