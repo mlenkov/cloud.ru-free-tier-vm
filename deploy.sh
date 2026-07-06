@@ -76,9 +76,7 @@ python3 cis_manager.py audit --format json
 python3 cis_manager.py fix --force
 
 # Ensure fail2ban is running before final audit
-mkdir -p /etc/fail2ban
-if [ ! -f /etc/fail2ban/jail.local ]; then
-    cat > /etc/fail2ban/jail.local << 'EOF'
+cat > /etc/fail2ban/jail.local << 'EOF'
 [DEFAULT]
 bantime = 3600
 findtime = 600
@@ -86,13 +84,14 @@ maxretry = 3
 
 [sshd]
 enabled = true
+backend = systemd
 maxretry = 3
 EOF
-fi
 systemctl enable --now fail2ban 2>&1 || true
 sleep 2
 if ! systemctl is-active --quiet fail2ban; then
-    echo "⚠️  fail2ban не стартует, проверь конфиг: journalctl -u fail2ban -n 20"
+    echo "⚠️  fail2ban не стартует, ошибка:"
+    sudo journalctl -u fail2ban -n 5 --no-pager 2>/dev/null || true
 fi
 
 python3 cis_manager.py audit --format json
