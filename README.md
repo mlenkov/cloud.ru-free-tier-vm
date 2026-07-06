@@ -4,9 +4,10 @@
 
 ## Быстрый старт
 
-1. Подключись к серверу и скопируй репозиторий:
+1. Подключись к серверу, установи git и скопируй репозиторий:
    ```bash
    ssh user@host
+   sudo apt update && sudo apt install -y git
    git clone https://github.com/mlenkov/cloud.ru-free-tier-vm.git
    cd cloud.ru-free-tier-vm
    ```

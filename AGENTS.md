@@ -31,6 +31,7 @@ Execute step by step. Wait for each to complete before the next.
 ```
 1. SSH to server, clone repo, run deploy.sh:
    ssh -i <key> <user>@<ip>
+   sudo apt update && sudo apt install -y git
    git clone https://github.com/mlenkov/cloud.ru-free-tier-vm.git
    cd cloud.ru-free-tier-vm
    BW_ACCESS_TOKEN="xxx" sudo bash deploy.sh
