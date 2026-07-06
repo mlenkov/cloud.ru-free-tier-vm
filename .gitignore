@@ -22,3 +22,6 @@ Thumbs.db
 .gigacode/
 *.tar.gz
 /tmp/rclone_yadisk_*
+
+# Server-generated docs (contains IP, hostname, HW specs)
+docs/README.md

@@ -216,16 +216,17 @@ def generate_readme(audit_data: dict, system_info: dict) -> str:
 
 
 def main():
-    print("📝 Generating README.md...")
+    print("📝 Generating server documentation...")
 
     audit_data = load_audit_data()
     system_info = get_system_info()
     readme = generate_readme(audit_data, system_info)
 
-    readme_path = Path("README.md")
+    readme_path = Path("docs/README.md")
+    readme_path.parent.mkdir(parents=True, exist_ok=True)
     readme_path.write_text(readme, encoding='utf-8')
 
-    print(f"✅ README.md generated: {readme_path.absolute()}")
+    print(f"✅ docs/README.md generated: {readme_path.absolute()}")
     print(f"📊 Compliance Score: {audit_data.get('compliance_score', 0)}%")
 
 

@@ -1,7 +1,7 @@
 # Backup 3-2-1 Configuration
-# Copy 1: Local   — /var/backups/cloud.ru-free-tier-vm
-# Copy 2: Offsite — cloud.ru S3 Object Storage
-# Copy 3: Remote  — Yandex Disk
+# Copy 1: Local   — /var/backups/<project>
+# Copy 2: Offsite — cloud.ru S3 Object Storage (config via BSM)
+# Copy 3: Remote  — Yandex Disk (config via BSM)
 
 backup:
   strategy: 3-2-1
@@ -27,13 +27,6 @@ backup:
     keep_monthly: 3
     keep_yearly: 1
 
-  # cloud.ru S3 Object Storage
-  s3:
-    endpoint: "https://s3.cloud.ru"
-    bucket: "mais-agency-backup"
-    prefix: "app.mais.agency"
-    region: "ru-central-1"
-
-  # Yandex Disk (offsite)
-  yandex_disk:
-    path: "/backups/cloud.ru-free-tier-vm"
+  # S3, Yandex Disk настройки — через BSM
+  # cloudru/s3/bucket, cloudru/s3/endpoint, yandex/disk/token
+  # prefix определяется автоматически: hostname -f

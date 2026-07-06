@@ -1,165 +1,61 @@
-# 🖥️ VPS Server: app
+# cloud.ru-free-tier-vm
 
-## 📋 Основная информация
+Automated VPS provisioning: CIS Debian 12 Level 1 hardening, 3-2-1 backup, secrets management.
 
-- **IP Address**: 91.224.87.211
-- **OS**: Debian 12 (bookworm)
-- **Kernel**: 6.1.0-32-amd64
-- **Generated**: 2026-07-06 10:48:34
-- **CIS Compliance**: 100.0%
+## Quick Start
 
-## 🖥️ Hardware Specifications
+```bash
+# From this repo on your local machine:
+BW_ACCESS_TOKEN="xxx" ./deploy.sh <hostname>
+```
 
-| Component | Specification |
-|-----------|---------------|
-| CPU | Intel Xeon Processor (Cascadelake) |
-| Cores | 2 |
-| RAM | 3 GB |
-| Swap | 0 GB |
-| Disk | 29G GB (15% used) |
+`deploy.sh` syncs the repo to the server and runs: secrets → CIS audit → fix → backup → docs.
 
-## ✅ CIS Audit Results
-
-| Status | Count | Percentage |
-|--------|-------|------------|
-| ✅ Passed | 59 | 100.0% |
-| ❌ Failed | 0 | 0.0% |
-| ⚠️ Errors | 0 | 0.0% |
-
-## 🔒 Security Configuration Summary
-
-### Network Hardening
-- ✅ IP forwarding отключен
-- ✅ Packet redirect sending отключен
-- ✅ Source routed packets отключены
-- ✅ ICMP redirects отключены
-- ✅ Reverse path filtering включен
-- ✅ Suspicious packets logging включен
-
-### SSH Security
-- ✅ SSH: вход root отключен
-- ✅ SSH: MaxAuthTries <= 4
-- ✅ SSH: IgnoreRhosts включен
-- ✅ SSH: HostBasedAuthentication отключен
-- ✅ SSH: PermitEmptyPasswords отключен
-- ✅ SSH: X11Forwarding отключен
-
-### File Permissions
-- ✅ /etc/passwd права = 644
-- ✅ PASS_MAX_DAYS <= 365
-- ✅ PASS_MIN_DAYS >= 1
-- ✅ UMASK >= 027
-- ✅ INACTIVE lock <= 30 days
-- ✅ /etc/shadow права <= 640
-- ✅ /etc/group права = 644
-- ✅ /etc/gshadow права <= 640
-- ✅ /etc/passwd- права = 644
-- ✅ /etc/shadow- права <= 640
-- ✅ /etc/group- права = 644
-- ✅ /etc/gshadow- права <= 640
-- ✅ /etc/ssh/sshd_config права <= 600
-
-### Fail2ban
-- ✅ Fail2ban установлен и запущен
-- ✅ Fail2ban: SSH защита активна
-- ✅ Fail2ban: бан после 3 попыток
-
-### Updates
-- ✅ Needrestart установлен
-- ✅ Unattended-upgrades установлен
-- ✅ Unattended-upgrades настроен
-
-### Security Banners
-- ✅ /etc/issue содержит предупреждение
-- ✅ /etc/issue.net содержит предупреждение
-
-## 📦 Installed Software
-
-| Package | Version | Status |
-|---------|---------|--------|
-| fail2ban | 1.0.2 | ✅ Installed |
-| Python | 3.11.2 | Installed |
-| sshd | OpenSSH | ✅ Running |
-
-## 🛠️ DevOps Automation
-
-This server is managed by **AI Employee** using GitHub Actions CI/CD.
-
-### Pipeline Stages
-
-1. **Setup** - Automatically applies CIS standards + backup 3-2-1
-2. **Verify** - Runs CIS audit on each commit
-3. **Docs** - Auto-generates documentation
-
-### Pipeline Status
-
-- **Last Run**: 2026-07-06 10:48:34
-- **Status**: ✅ Pass
-- **Next Run**: Scheduled
-
-## 🔑 Secrets Management
-
-All secrets are securely stored in **Bitwarden Secrets Manager**.
-
-### Configured Secrets
-- cloud.ru S3 (access_key, secret_key, bucket, endpoint)
-- Yandex Disk OAuth token
-- Restic encryption password
-- GitHub PAT
-
-## 📁 Project Structure
+## Project Structure
 
 ```
 cloud.ru-free-tier-vm/
-├── deploy.sh               # One-command installer
+├── deploy.sh               # One-command installer (entry point)
 ├── cis_manager.py          # CIS audit and fix tool
 ├── config/
-│   ├── cis_standard.yaml   # CIS configuration
+│   ├── cis_standard.yaml   # CIS Debian 12 Level 1 checks
 │   ├── backup.yaml         # 3-2-1 backup config
-│   └── templates/          # README template
+│   └── templates/
+│       └── server.md       # Documentation template
 ├── scripts/
-│   ├── backup.py           # 3-2-1 backup manager
-│   ├── secrets.py          # Bitwarden sync
-│   ├── docs_generator.py   # README generator
-│   └── check_compliance.py # Compliance validator
+│   ├── backup.py           # 3-2-1 backup manager (local + S3 + Yandex Disk)
+│   ├── secrets.py          # Bitwarden Secrets Manager sync
+│   ├── docs_generator.py   # Server documentation generator
+│   └── check_compliance.py # CIS compliance validator
+├── AGENTS.md               # AI Agent documentation
 └── README.md               # This file
 ```
 
-## 📊 Compliance History
+## Required Secrets (Bitwarden Secrets Manager)
 
-| Date | Score | Passed | Failed |
-|------|-------|--------|--------|
-| 2026-07-06 | 100.0% | 59 | 0 |
-| 2026-07-06 | 100.0% | 59 | 0 |
+| Key | Description |
+|-----|-------------|
+| `cloudru/s3/access_key` | S3 Access Key |
+| `cloudru/s3/secret_key` | S3 Secret Key |
+| `cloudru/s3/bucket` | S3 bucket name |
+| `cloudru/s3/endpoint` | S3 endpoint URL |
+| `yandex/disk/token` | Yandex Disk OAuth token |
+| `restic/password` | Restic encryption password |
+| `github/token` | GitHub Personal Access Token |
 
-## 🔧 Quick Commands
+## Features
+
+- **CIS Debian 12 Level 1** — 59 checks across 16 categories
+- **3-2-1 Backup** — local disk + cloud.ru S3 + Yandex Disk via restic
+- **Secrets Management** — Bitwarden Secrets Manager (machine-to-machine)
+- **Self-documenting** — generates server README with audit results
+- **CI/CD ready** — GitHub Actions pipeline included
+
+## Manual Commands (on server)
 
 ```bash
-# Run full provisioning:
-#   BW_ACCESS_TOKEN="xxx" ssh app.mais.agency \
-#     "sudo bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/mlenkov/cloud.ru-free-tier-vm/main/deploy.sh)\""
-
-# Run CIS audit
-python3 cis_manager.py audit
-
-# Fix all violations
-python3 cis_manager.py fix --force
-
-# View audit history
-python3 cis_manager.py history
-
-# Create 3-2-1 backup
-python3 scripts/backup.py create
-
-# Generate documentation
-python3 scripts/docs_generator.py
+python3 cis_manager.py audit          # Run CIS audit
+python3 cis_manager.py fix --force    # Apply all fixes
+python3 scripts/backup.py create      # Create 3-2-1 backup
+python3 scripts/secrets.py sync       # Sync from Bitwarden
 ```
-
-## 📞 Support
-
-For issues, check the GitHub repository or contact the DevOps team.
-
----
-
-*Generated by AI Employee on 2026-07-06 10:48:34*
-*Last updated: 2026-07-06 10:48:34*

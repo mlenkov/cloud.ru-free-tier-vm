@@ -122,8 +122,8 @@ def cmd_create(args):
     print(f"\n☁️  Copy 2: cloud.ru S3")
     s3_key = env.get("cloudru/s3/access-key") or os.environ.get("AWS_ACCESS_KEY_ID")
     s3_secret = env.get("cloudru/s3/secret-key") or os.environ.get("AWS_SECRET_ACCESS_KEY")
-    s3_bucket = env.get("cloudru/s3/bucket") or backup_cfg.get("s3", {}).get("bucket", "mais-agency-backup")
-    s3_endpoint = env.get("cloudru/s3/endpoint") or backup_cfg.get("s3", {}).get("endpoint", "https://s3.cloud.ru")
+    s3_bucket = env.get("cloudru/s3/bucket") or backup_cfg.get("s3", {}).get("bucket", "")
+    s3_endpoint = env.get("cloudru/s3/endpoint") or backup_cfg.get("s3", {}).get("endpoint", "")
     s3_region = backup_cfg.get("s3", {}).get("region", "ru-central-1")
     tenant_id = env.get("cloudru/s3/tenant-id")
     if tenant_id and s3_key and ":" not in s3_key:
@@ -243,8 +243,8 @@ def cmd_list(args):
 
     s3_key = env.get("cloudru/s3/access-key") or os.environ.get("AWS_ACCESS_KEY_ID")
     s3_secret = env.get("cloudru/s3/secret-key") or os.environ.get("AWS_SECRET_ACCESS_KEY")
-    s3_endpoint = env.get("cloudru/s3/endpoint") or backup_cfg.get("s3", {}).get("endpoint", "https://s3.cloud.ru")
-    s3_bucket = env.get("cloudru/s3/bucket") or backup_cfg.get("s3", {}).get("bucket", "mais-agency-backup")
+    s3_endpoint = env.get("cloudru/s3/endpoint") or backup_cfg.get("s3", {}).get("endpoint", "")
+    s3_bucket = env.get("cloudru/s3/bucket") or backup_cfg.get("s3", {}).get("bucket", "")
     s3_region = backup_cfg.get("s3", {}).get("region", "ru-central-1")
     tenant_id = env.get("cloudru/s3/tenant-id")
     if tenant_id and s3_key and ":" not in s3_key:
@@ -297,8 +297,8 @@ def cmd_restore(args):
     if source == "s3":
         s3_key = env.get("cloudru/s3/access-key") or os.environ.get("AWS_ACCESS_KEY_ID")
         s3_secret = env.get("cloudru/s3/secret-key") or os.environ.get("AWS_SECRET_ACCESS_KEY")
-        s3_bucket = env.get("cloudru/s3/bucket") or backup_cfg.get("s3", {}).get("bucket", "mais-agency-backup")
-        s3_endpoint = env.get("cloudru/s3/endpoint") or backup_cfg.get("s3", {}).get("endpoint", "https://s3.cloud.ru")
+        s3_bucket = env.get("cloudru/s3/bucket") or backup_cfg.get("s3", {}).get("bucket", "")
+        s3_endpoint = env.get("cloudru/s3/endpoint") or backup_cfg.get("s3", {}).get("endpoint", "")
         s3_region = backup_cfg.get("s3", {}).get("region", "ru-central-1")
         tenant_id = env.get("cloudru/s3/tenant-id")
         if tenant_id and s3_key and ":" not in s3_key:

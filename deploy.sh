@@ -2,14 +2,14 @@
 # cloud.ru-free-tier-vm — Server provisioning & CIS audit
 # Repo: https://github.com/mlenkov/cloud.ru-free-tier-vm
 #
-# Usage (from local machine):
-#   ./deploy.sh app.mais.agency
+# Usage (from local repo):
+#   ./deploy.sh <hostname>
 #
 # Usage (directly on server):
 #   sudo bash deploy.sh
 #
 # One-liner (from repo root):
-#   BW_ACCESS_TOKEN="xxx" ./deploy.sh app.mais.agency
+#   BW_ACCESS_TOKEN="xxx" ./deploy.sh <hostname>
 
 set -euo pipefail
 export DEBIAN_FRONTEND=noninteractive
@@ -20,7 +20,7 @@ SERVER="${1:-}"
 if [ -n "$SERVER" ]; then
     SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
     echo "===== Deploying to $SERVER ====="
-    ssh "$SERVER" "rm -rf cloud.ru-free-tier-vm && mkdir cloud.ru-free-tier-vm"
+    ssh "$SERVER" "sudo rm -rf cloud.ru-free-tier-vm && mkdir cloud.ru-free-tier-vm"
     tar cz --exclude='.git' --exclude='.opencode' --exclude='__pycache__' \
       --exclude='.env' --exclude='cis_data' --exclude='.github' \
       -C "$SCRIPT_DIR" . | ssh "$SERVER" "tar xz -C cloud.ru-free-tier-vm"
@@ -81,7 +81,7 @@ python3 scripts/backup.py create 2>/dev/null || true
 python3 scripts/docs_generator.py
 
 mkdir -p "$DOCS_DIR"
-cp README.md "$DOCS_DIR/" 2>/dev/null || true
+cp docs/README.md "$DOCS_DIR/" 2>/dev/null || true
 
 echo "===== Done ====="
 echo "Project: $PROJECT_DIR"
