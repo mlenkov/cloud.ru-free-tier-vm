@@ -1,61 +1,61 @@
 # cloud.ru-free-tier-vm
 
-Automated VPS provisioning: CIS Debian 12 Level 1 hardening, 3-2-1 backup, secrets management.
+Автоматическая настройка VPS: CIS Debian 12 Level 1 безопасность, 3-2-1 бэкап, управление секретами.
 
-## Quick Start
+## Быстрый старт
 
 ```bash
-# From this repo on your local machine:
+# На локальной машине из этого репозитория:
 BW_ACCESS_TOKEN="xxx" ./deploy.sh <hostname>
 ```
 
-`deploy.sh` syncs the repo to the server and runs: secrets → CIS audit → fix → backup → docs.
+`deploy.sh` синхронизирует репозиторий на сервер и запускает: секреты → CIS аудит → исправление → бэкап → документация.
 
-## Project Structure
+## Структура проекта
 
 ```
 cloud.ru-free-tier-vm/
-├── deploy.sh               # One-command installer (entry point)
-├── cis_manager.py          # CIS audit and fix tool
+├── deploy.sh               # Установка одной командой (entry point)
+├── cis_manager.py          # CIS аудит и исправление
 ├── config/
-│   ├── cis_standard.yaml   # CIS Debian 12 Level 1 checks
-│   ├── backup.yaml         # 3-2-1 backup config
+│   ├── cis_standard.yaml   # CIS Debian 12 Level 1 проверки
+│   ├── backup.yaml         # Конфигурация 3-2-1 бэкапа
 │   └── templates/
-│       └── server.md       # Documentation template
+│       └── server.md       # Шаблон документации
 ├── scripts/
-│   ├── backup.py           # 3-2-1 backup manager (local + S3 + Yandex Disk)
-│   ├── secrets.py          # Bitwarden Secrets Manager sync
-│   ├── docs_generator.py   # Server documentation generator
-│   └── check_compliance.py # CIS compliance validator
-├── AGENTS.md               # AI Agent documentation
-└── README.md               # This file
+│   ├── backup.py           # Управление 3-2-1 бэкапом (локально + S3 + Yandex Disk)
+│   ├── secrets.py          # Синхронизация с Bitwarden Secrets Manager
+│   ├── docs_generator.py   # Генерация документации сервера
+│   └── check_compliance.py # Проверка CIS compliance
+├── AGENTS.md               # Документация AI Agent
+└── README.md               # Этот файл
 ```
 
-## Required Secrets (Bitwarden Secrets Manager)
+## Требуемые секреты (Bitwarden Secrets Manager)
 
-| Key | Description |
-|-----|-------------|
+| Ключ | Описание |
+|------|----------|
 | `cloudru/s3/access_key` | S3 Access Key |
 | `cloudru/s3/secret_key` | S3 Secret Key |
-| `cloudru/s3/bucket` | S3 bucket name |
+| `cloudru/s3/bucket` | Имя S3 бакета |
 | `cloudru/s3/endpoint` | S3 endpoint URL |
-| `yandex/disk/token` | Yandex Disk OAuth token |
-| `restic/password` | Restic encryption password |
+| `yandex/disk/token` | Yandex Disk OAuth токен |
+| `restic/password` | Пароль шифрования restic |
 | `github/token` | GitHub Personal Access Token |
 
-## Features
+## Возможности
 
-- **CIS Debian 12 Level 1** — 59 checks across 16 categories
-- **3-2-1 Backup** — local disk + cloud.ru S3 + Yandex Disk via restic
-- **Secrets Management** — Bitwarden Secrets Manager (machine-to-machine)
-- **Self-documenting** — generates server README with audit results
-- **CI/CD ready** — GitHub Actions pipeline included
+- **CIS Debian 12 Level 1** — 59 проверок в 16 категориях
+- **3-2-1 Бэкап** — локальный диск + cloud.ru S3 + Yandex Disk через restic
+- **Управление секретами** — Bitwarden Secrets Manager (machine-to-machine)
+- **Самодокументирование** — генерирует README сервера с результатами аудита
+- **CI/CD готов** — GitHub Actions pipeline включён
 
-## Manual Commands (on server)
+## Ручные команды (на сервере)
 
 ```bash
-python3 cis_manager.py audit          # Run CIS audit
-python3 cis_manager.py fix --force    # Apply all fixes
-python3 scripts/backup.py create      # Create 3-2-1 backup
-python3 scripts/secrets.py sync       # Sync from Bitwarden
+python3 cis_manager.py audit          # Запуск CIS аудита
+python3 cis_manager.py fix --force    # Применить все исправления
+python3 scripts/backup.py create      # Создать 3-2-1 бэкап
+python3 scripts/secrets.py sync       # Синхронизация из Bitwarden
 ```
