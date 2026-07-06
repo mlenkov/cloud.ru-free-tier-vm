@@ -102,92 +102,7 @@ class CISManager:
 
     def _default_checks(self) -> Dict:
         """Хардкод-запасной список проверок (если YAML недоступен)"""
-        return {
-            "1.4.1": {"category": "CoreDumps", "description": "Core dumps отключены",
-                       "check": lambda: self._check_core_dumps(),
-                       "fix": lambda: self._fix_core_dumps()},
-            "1.7.1": {"category": "Banners", "description": "/etc/issue содержит предупреждение",
-                       "check": lambda: self._check_banner("/etc/issue"),
-                       "fix": lambda: self._fix_banner("/etc/issue")},
-            "1.7.2": {"category": "Banners", "description": "/etc/issue.net содержит предупреждение",
-                       "check": lambda: self._check_banner("/etc/issue.net"),
-                       "fix": lambda: self._fix_banner("/etc/issue.net")},
-            "3.1": {"category": "Network", "description": "IP forwarding отключен",
-                     "check": lambda: self._check_sysctl("net.ipv4.ip_forward", "0"),
-                     "fix": lambda: self._fix_sysctl("net.ipv4.ip_forward", "0")},
-            "3.2": {"category": "Network", "description": "Packet redirect sending отключен",
-                     "check": lambda: self._check_sysctl("net.ipv4.conf.all.send_redirects", "0"),
-                     "fix": lambda: self._fix_sysctl("net.ipv4.conf.all.send_redirects", "0")},
-            "3.3": {"category": "Network", "description": "Source routed packets отключены",
-                     "check": lambda: self._check_sysctl("net.ipv4.conf.all.accept_source_route", "0"),
-                     "fix": lambda: self._fix_sysctl("net.ipv4.conf.all.accept_source_route", "0")},
-            "3.4": {"category": "Network", "description": "ICMP redirects отключены",
-                     "check": lambda: self._check_sysctl("net.ipv4.conf.all.accept_redirects", "0"),
-                     "fix": lambda: self._fix_sysctl("net.ipv4.conf.all.accept_redirects", "0")},
-            "3.5": {"category": "Network", "description": "Reverse path filtering включен",
-                     "check": lambda: self._check_sysctl("net.ipv4.conf.all.rp_filter", "1"),
-                     "fix": lambda: self._fix_sysctl("net.ipv4.conf.all.rp_filter", "1")},
-            "3.6": {"category": "Network", "description": "Suspicious packets logging включен",
-                     "check": lambda: self._check_sysctl("net.ipv4.conf.all.log_martians", "1"),
-                     "fix": lambda: self._fix_sysctl("net.ipv4.conf.all.log_martians", "1")},
-            "5.2": {"category": "SSH", "description": "SSH: вход root отключен",
-                     "check": lambda: self._check_ssh_param("permitrootlogin", "no"),
-                     "fix": lambda: self._fix_ssh_param("PermitRootLogin", "no")},
-            "5.3": {"category": "SSH", "description": "SSH: MaxAuthTries <= 4",
-                     "check": lambda: self._check_ssh_param_max("maxauthtries", 4),
-                     "fix": lambda: self._fix_ssh_param("MaxAuthTries", "3")},
-            "5.4": {"category": "SSH", "description": "SSH: IgnoreRhosts включен",
-                     "check": lambda: self._check_ssh_param("ignorerhosts", "yes"),
-                     "fix": lambda: self._fix_ssh_param("IgnoreRhosts", "yes")},
-            "5.5": {"category": "SSH", "description": "SSH: HostBasedAuthentication отключен",
-                     "check": lambda: self._check_ssh_param("hostbasedauthentication", "no"),
-                     "fix": lambda: self._fix_ssh_param("HostBasedAuthentication", "no")},
-            "5.6": {"category": "SSH", "description": "SSH: PermitEmptyPasswords отключен",
-                     "check": lambda: self._check_ssh_param("permitemptypasswords", "no"),
-                     "fix": lambda: self._fix_ssh_param("PermitEmptyPasswords", "no")},
-            "5.7": {"category": "SSH", "description": "SSH: X11Forwarding отключен",
-                     "check": lambda: self._check_ssh_param("x11forwarding", "no"),
-                     "fix": lambda: self._fix_ssh_param("X11Forwarding", "no")},
-            "6.1": {"category": "Auth", "description": "PASS_MAX_DAYS <= 365",
-                     "check": lambda: self._check_login_def("PASS_MAX_DAYS", max_val=365, min_val=1),
-                     "fix": lambda: self._fix_login_def("PASS_MAX_DAYS", "365")},
-            "6.2": {"category": "Auth", "description": "PASS_MIN_DAYS >= 1",
-                     "check": lambda: self._check_login_def("PASS_MIN_DAYS", min_val=1),
-                     "fix": lambda: self._fix_login_def("PASS_MIN_DAYS", "1")},
-            "6.3": {"category": "Auth", "description": "UMASK >= 027",
-                     "check": lambda: self._check_umask("027"),
-                     "fix": lambda: self._fix_login_def("UMASK", "027")},
-            "7.1": {"category": "Files", "description": "/etc/passwd права = 644",
-                     "check": lambda: self._check_file_perms("/etc/passwd", "644"),
-                     "fix": lambda: self._fix_file_perms("/etc/passwd", "644")},
-            "7.2": {"category": "Files", "description": "/etc/shadow права <= 640",
-                     "check": lambda: self._check_file_perms_max("/etc/shadow", "640"),
-                     "fix": lambda: self._fix_file_perms("/etc/shadow", "640")},
-            "7.3": {"category": "Files", "description": "/etc/group права = 644",
-                     "check": lambda: self._check_file_perms("/etc/group", "644"),
-                     "fix": lambda: self._fix_file_perms("/etc/group", "644")},
-            "7.4": {"category": "Files", "description": "/etc/ssh/sshd_config права <= 600",
-                     "check": lambda: self._check_file_perms_max("/etc/ssh/sshd_config", "600"),
-                     "fix": lambda: self._fix_file_perms("/etc/ssh/sshd_config", "600")},
-            "8.1": {"category": "Fail2ban", "description": "Fail2ban установлен и запущен",
-                     "check": lambda: self._check_fail2ban_installed(),
-                     "fix": lambda: self._fix_fail2ban_installed()},
-            "8.2": {"category": "Fail2ban", "description": "Fail2ban: SSH защита активна",
-                     "check": lambda: self._check_fail2ban_ssh(),
-                     "fix": lambda: self._fix_fail2ban_ssh()},
-            "8.3": {"category": "Fail2ban", "description": "Fail2ban: бан после 3 попыток",
-                     "check": lambda: self._check_fail2ban_maxretry(),
-                     "fix": lambda: self._fix_fail2ban_maxretry()},
-            "9.1": {"category": "Updates", "description": "Unattended-upgrades установлен",
-                     "check": lambda: self._check_unattended_upgrades(),
-                     "fix": lambda: self._fix_unattended_upgrades()},
-            "9.2": {"category": "Updates", "description": "Unattended-upgrades настроен",
-                     "check": lambda: self._check_unattended_upgrades_config(),
-                     "fix": lambda: self._fix_unattended_upgrades_config()},
-            "10.1": {"category": "Updates", "description": "Needrestart установлен",
-                      "check": lambda: self._check_needrestart(),
-                      "fix": lambda: self._fix_needrestart()},
-        }
+        return self._build_check_registry()
 
     def _load_checks_from_yaml(self, yaml_path: Path) -> Optional[Dict]:
         """Загружает реестр проверок из YAML-конфига"""
@@ -245,15 +160,81 @@ class CISManager:
     def _build_check_registry(self) -> Dict:
         """Строит реестр проверок с привязкой к реализациям"""
         return {
+            # ============ 1. Initial Setup ============
+            "1.3.1": {"category": "Integrity", "description": "AIDE установлен",
+                       "check": lambda: self._check_aide_installed(),
+                       "fix": lambda: self._fix_install_aide()},
             "1.4.1": {"category": "CoreDumps", "description": "Core dumps отключены",
                        "check": lambda: self._check_core_dumps(),
                        "fix": lambda: self._fix_core_dumps()},
+            "1.5.1": {"category": "ASLR", "description": "ASLR включён",
+                       "check": lambda: self._check_aslr_enabled(),
+                       "fix": lambda: self._fix_enable_aslr()},
+            "1.5.2": {"category": "ASLR", "description": "Prelink удалён",
+                       "check": lambda: self._check_prelink_removed(),
+                       "fix": lambda: self._fix_remove_prelink()},
+            "1.6.1": {"category": "AppArmor", "description": "AppArmor включён",
+                       "check": lambda: self._check_apparmor_enabled(),
+                       "fix": lambda: self._fix_enable_apparmor()},
             "1.7.1": {"category": "Banners", "description": "/etc/issue содержит предупреждение",
                        "check": lambda: self._check_banner("/etc/issue"),
                        "fix": lambda: self._fix_banner("/etc/issue")},
             "1.7.2": {"category": "Banners", "description": "/etc/issue.net содержит предупреждение",
                        "check": lambda: self._check_banner("/etc/issue.net"),
                        "fix": lambda: self._fix_banner("/etc/issue.net")},
+            # ============ 2. Services ============
+            "2.1.1": {"category": "TimeSync", "description": "Chrony установлен",
+                       "check": lambda: self._check_chrony_installed(),
+                       "fix": lambda: self._fix_install_chrony()},
+            "2.2.1": {"category": "Services", "description": "Avahi не установлен",
+                       "check": lambda: self._check_service_removed("avahi-daemon", "avahi-daemon"),
+                       "fix": lambda: self._fix_remove_service("avahi-daemon", "avahi-daemon")},
+            "2.2.2": {"category": "Services", "description": "CUPS не установлен",
+                       "check": lambda: self._check_service_removed("cups", "cups"),
+                       "fix": lambda: self._fix_remove_service("cups", "cups")},
+            "2.2.3": {"category": "Services", "description": "DHCP сервер не установлен",
+                       "check": lambda: self._check_service_removed("isc-dhcp-server", "isc-dhcp-server"),
+                       "fix": lambda: self._fix_remove_service("isc-dhcp-server", "isc-dhcp-server")},
+            "2.2.4": {"category": "Services", "description": "DNS сервер не установлен",
+                       "check": lambda: self._check_service_removed("bind9", "named"),
+                       "fix": lambda: self._fix_remove_service("bind9", "named")},
+            "2.2.5": {"category": "Services", "description": "FTP сервер не установлен",
+                       "check": lambda: self._check_service_removed("proftpd", "proftpd"),
+                       "fix": lambda: self._fix_remove_service("proftpd", "proftpd")},
+            "2.2.6": {"category": "Services", "description": "HTTP сервер не установлен",
+                       "check": lambda: self._check_service_removed("apache2", "apache2"),
+                       "fix": lambda: self._fix_remove_service("apache2", "apache2")},
+            "2.2.7": {"category": "Services", "description": "IMAP/POP3 сервер не установлен",
+                       "check": lambda: self._check_service_removed("dovecot-core", "dovecot"),
+                       "fix": lambda: self._fix_remove_service("dovecot-core", "dovecot")},
+            "2.2.8": {"category": "Services", "description": "LDAP сервер не установлен",
+                       "check": lambda: self._check_service_removed("slapd", "slapd"),
+                       "fix": lambda: self._fix_remove_service("slapd", "slapd")},
+            "2.2.9": {"category": "Services", "description": "Mail сервер не установлен",
+                       "check": lambda: self._check_service_removed("postfix", "postfix"),
+                       "fix": lambda: self._fix_remove_service("postfix", "postfix")},
+            "2.2.10": {"category": "Services", "description": "NFS сервер не установлен",
+                        "check": lambda: self._check_service_removed("nfs-kernel-server", "nfs-server"),
+                        "fix": lambda: self._fix_remove_service("nfs-kernel-server", "nfs-server")},
+            "2.2.11": {"category": "Services", "description": "RPC bind не установлен",
+                        "check": lambda: self._check_service_removed("rpcbind", "rpcbind"),
+                        "fix": lambda: self._fix_remove_service("rpcbind", "rpcbind")},
+            "2.2.12": {"category": "Services", "description": "RSync сервер не установлен",
+                        "check": lambda: self._check_service_removed("rsync", "rsync"),
+                        "fix": lambda: self._fix_remove_service("rsync", "rsync")},
+            "2.2.13": {"category": "Services", "description": "Samba не установлен",
+                        "check": lambda: self._check_service_removed("samba", "smbd"),
+                        "fix": lambda: self._fix_remove_service("samba", "smbd")},
+            "2.2.14": {"category": "Services", "description": "SNMP сервер не установлен",
+                        "check": lambda: self._check_service_removed("snmpd", "snmpd"),
+                        "fix": lambda: self._fix_remove_service("snmpd", "snmpd")},
+            "2.2.15": {"category": "Services", "description": "TFTP сервер не установлен",
+                        "check": lambda: self._check_service_removed("tftpd-hpa", "tftpd-hpa"),
+                        "fix": lambda: self._fix_remove_service("tftpd-hpa", "tftpd-hpa")},
+            "2.2.16": {"category": "Services", "description": "X Window System не установлен",
+                        "check": lambda: self._check_service_removed("xserver-xorg-core"),
+                        "fix": lambda: self._fix_remove_service("xserver-xorg-core")},
+            # ============ 3. Network ============
             "3.1": {"category": "Network", "description": "IP forwarding отключен",
                      "check": lambda: self._check_sysctl("net.ipv4.ip_forward", "0"),
                      "fix": lambda: self._fix_sysctl("net.ipv4.ip_forward", "0")},
@@ -272,6 +253,14 @@ class CISManager:
             "3.6": {"category": "Network", "description": "Suspicious packets logging включен",
                      "check": lambda: self._check_sysctl("net.ipv4.conf.all.log_martians", "1"),
                      "fix": lambda: self._fix_sysctl("net.ipv4.conf.all.log_martians", "1")},
+            # ============ 4. Logging ============
+            "4.1.1": {"category": "Logging", "description": "journald persistent storage",
+                       "check": lambda: self._check_journald_persistent(),
+                       "fix": lambda: self._fix_journald_persistent()},
+            # ============ 5. Access / Auth ============
+            "5.1.1": {"category": "Cron", "description": "Cron/At ограничены (allow)",
+                       "check": lambda: self._check_cron_restricted(),
+                       "fix": lambda: self._fix_cron_restricted()},
             "5.2": {"category": "SSH", "description": "SSH: вход root отключен",
                      "check": lambda: self._check_ssh_param("permitrootlogin", "no"),
                      "fix": lambda: self._fix_ssh_param("PermitRootLogin", "no")},
@@ -290,27 +279,53 @@ class CISManager:
             "5.7": {"category": "SSH", "description": "SSH: X11Forwarding отключен",
                      "check": lambda: self._check_ssh_param("x11forwarding", "no"),
                      "fix": lambda: self._fix_ssh_param("X11Forwarding", "no")},
-            "6.1": {"category": "Auth", "description": "PASS_MAX_DAYS <= 365",
-                     "check": lambda: self._check_login_def("PASS_MAX_DAYS", max_val=365, min_val=1),
-                     "fix": lambda: self._fix_login_def("PASS_MAX_DAYS", "365")},
-            "6.2": {"category": "Auth", "description": "PASS_MIN_DAYS >= 1",
-                     "check": lambda: self._check_login_def("PASS_MIN_DAYS", min_val=1),
-                     "fix": lambda: self._fix_login_def("PASS_MIN_DAYS", "1")},
-            "6.3": {"category": "Auth", "description": "UMASK >= 027",
-                     "check": lambda: self._check_umask("027"),
-                     "fix": lambda: self._fix_login_def("UMASK", "027")},
-            "7.1": {"category": "Files", "description": "/etc/passwd права = 644",
-                     "check": lambda: self._check_file_perms("/etc/passwd", "644"),
-                     "fix": lambda: self._fix_file_perms("/etc/passwd", "644")},
-            "7.2": {"category": "Files", "description": "/etc/shadow права <= 640",
-                     "check": lambda: self._check_file_perms_max("/etc/shadow", "640"),
-                     "fix": lambda: self._fix_file_perms("/etc/shadow", "640")},
-            "7.3": {"category": "Files", "description": "/etc/group права = 644",
-                     "check": lambda: self._check_file_perms("/etc/group", "644"),
-                     "fix": lambda: self._fix_file_perms("/etc/group", "644")},
-            "7.4": {"category": "Files", "description": "/etc/ssh/sshd_config права <= 600",
-                     "check": lambda: self._check_file_perms_max("/etc/ssh/sshd_config", "600"),
-                     "fix": lambda: self._fix_file_perms("/etc/ssh/sshd_config", "600")},
+            "5.8.1": {"category": "PAM", "description": "pwquality настроен",
+                       "check": lambda: self._check_pwquality(),
+                       "fix": lambda: self._fix_pwquality()},
+            "5.8.2": {"category": "PAM", "description": "SHA512 для паролей",
+                       "check": lambda: self._check_sha512_password(),
+                       "fix": lambda: self._fix_sha512_password()},
+            # ============ 6. System Maintenance ============
+            "6.1.1": {"category": "Files", "description": "/etc/passwd права = 644",
+                       "check": lambda: self._check_file_perms("/etc/passwd", "644"),
+                       "fix": lambda: self._fix_file_perms("/etc/passwd", "644")},
+            "6.1.2": {"category": "Files", "description": "/etc/shadow права <= 640",
+                       "check": lambda: self._check_file_perms_max("/etc/shadow", "640"),
+                       "fix": lambda: self._fix_file_perms("/etc/shadow", "640")},
+            "6.1.3": {"category": "Files", "description": "/etc/group права = 644",
+                       "check": lambda: self._check_file_perms("/etc/group", "644"),
+                       "fix": lambda: self._fix_file_perms("/etc/group", "644")},
+            "6.1.4": {"category": "Files", "description": "/etc/gshadow права <= 640",
+                       "check": lambda: self._check_file_perms_max("/etc/gshadow", "640"),
+                       "fix": lambda: self._fix_file_perms("/etc/gshadow", "640")},
+            "6.1.5": {"category": "Files", "description": "/etc/passwd- права = 644",
+                       "check": lambda: self._check_file_perms("/etc/passwd-", "644"),
+                       "fix": lambda: self._fix_file_perms("/etc/passwd-", "644")},
+            "6.1.6": {"category": "Files", "description": "/etc/shadow- права <= 640",
+                       "check": lambda: self._check_file_perms_max("/etc/shadow-", "640"),
+                       "fix": lambda: self._fix_file_perms("/etc/shadow-", "640")},
+            "6.1.7": {"category": "Files", "description": "/etc/group- права = 644",
+                       "check": lambda: self._check_file_perms("/etc/group-", "644"),
+                       "fix": lambda: self._fix_file_perms("/etc/group-", "644")},
+            "6.1.8": {"category": "Files", "description": "/etc/gshadow- права <= 640",
+                       "check": lambda: self._check_file_perms_max("/etc/gshadow-", "640"),
+                       "fix": lambda: self._fix_file_perms("/etc/gshadow-", "640")},
+            "6.1.9": {"category": "Files", "description": "/etc/ssh/sshd_config права <= 600",
+                       "check": lambda: self._check_file_perms_max("/etc/ssh/sshd_config", "600"),
+                       "fix": lambda: self._fix_file_perms("/etc/ssh/sshd_config", "600")},
+            "6.1.10": {"category": "Files", "description": "PASS_MAX_DAYS <= 365",
+                        "check": lambda: self._check_login_def("PASS_MAX_DAYS", max_val=365, min_val=1),
+                        "fix": lambda: self._fix_login_def("PASS_MAX_DAYS", "365")},
+            "6.1.11": {"category": "Files", "description": "PASS_MIN_DAYS >= 1",
+                        "check": lambda: self._check_login_def("PASS_MIN_DAYS", min_val=1),
+                        "fix": lambda: self._fix_login_def("PASS_MIN_DAYS", "1")},
+            "6.1.12": {"category": "Files", "description": "UMASK >= 027",
+                        "check": lambda: self._check_umask("027"),
+                        "fix": lambda: self._fix_login_def("UMASK", "027")},
+            "6.1.13": {"category": "Files", "description": "INACTIVE lock <= 30 days",
+                        "check": lambda: self._check_inactive_lock(),
+                        "fix": lambda: self._fix_inactive_lock()},
+            # ============ Custom / Extra ============
             "8.1": {"category": "Fail2ban", "description": "Fail2ban установлен и запущен",
                      "check": lambda: self._check_fail2ban_installed(),
                      "fix": lambda: self._fix_fail2ban_installed()},
@@ -352,7 +367,209 @@ class CISManager:
             return e.returncode, e.stdout.strip() if e.stdout else "", e.stderr.strip() if e.stderr else ""
         except Exception as e:
             return -1, "", str(e)
-    
+
+    # ============ Generic Helpers ============
+
+    def _check_package_installed(self, pkg: str) -> Tuple[str, str]:
+        rc, out, _ = self._run_cmd(f"dpkg-query -W -f='${{Status}}' {pkg} 2>/dev/null | grep -q 'install ok installed'")
+        if rc == 0:
+            return Status.PASS, ""
+        return Status.FAIL, f"Пакет {pkg} не установлен"
+
+    def _fix_install_package(self, pkg: str) -> Tuple[bool, str]:
+        rc, _, err = self._run_cmd(f"apt-get install -y -qq {pkg}")
+        if rc == 0:
+            return True, "Установлен"
+        return False, f"Ошибка установки: {err[:100]}"
+
+    def _check_package_not_installed(self, pkg: str) -> Tuple[str, str]:
+        rc, out, _ = self._run_cmd(f"dpkg-query -W -f='${{Status}}' {pkg} 2>/dev/null | grep -q 'install ok installed'")
+        if rc != 0:
+            return Status.PASS, ""
+        return Status.FAIL, f"Пакет {pkg} установлен"
+
+    def _fix_remove_package(self, pkg: str) -> Tuple[bool, str]:
+        rc, _, err = self._run_cmd(f"apt-get remove -y -qq {pkg}")
+        if rc == 0:
+            return True, "Удалён"
+        return False, f"Ошибка удаления: {err[:100]}"
+
+    def _check_service_enabled(self, service: str) -> Tuple[str, str]:
+        rc, out, _ = self._run_cmd(f"systemctl is-enabled {service}")
+        if rc == 0 and out == "enabled":
+            return Status.PASS, ""
+        return Status.FAIL, f"Сервис {service}: {out or 'не найден'}"
+
+    def _fix_enable_service(self, service: str) -> Tuple[bool, str]:
+        rc, _, err = self._run_cmd(f"systemctl enable --now {service}")
+        if rc == 0:
+            return True, "Включён и запущен"
+        return False, f"Ошибка: {err[:100]}"
+
+    def _check_service_not_enabled(self, service: str) -> Tuple[str, str]:
+        rc, out, _ = self._run_cmd(f"systemctl is-enabled {service} 2>/dev/null")
+        if rc != 0 or out in ("disabled", "masked", "not-found"):
+            return Status.PASS, ""
+        return Status.FAIL, f"Сервис {service} active: {out}"
+
+    def _fix_disable_service(self, service: str) -> Tuple[bool, str]:
+        rc, _, err = self._run_cmd(f"systemctl disable --now {service} 2>/dev/null")
+        if rc == 0:
+            return True, "Отключён и остановлен"
+        return True, "OK (может быть уже не установлен)"
+
+    def _check_chrony_installed(self) -> Tuple[str, str]:
+        return self._check_package_installed("chrony")
+
+    def _fix_install_chrony(self) -> Tuple[bool, str]:
+        return self._fix_install_package("chrony")
+
+    def _check_aide_installed(self) -> Tuple[str, str]:
+        pkg, _ = self._check_package_installed("aide")
+        if pkg != Status.PASS:
+            return pkg, "Пакет aide не установлен"
+        rc, _, _ = self._run_cmd("ls /var/lib/aide/aide.db* 2>/dev/null")
+        if rc == 0:
+            return Status.PASS, ""
+        return Status.FAIL, "AIDE БД не инициализирована"
+
+    def _fix_install_aide(self) -> Tuple[bool, str]:
+        rc, msg = self._fix_install_package("aide")
+        if not rc:
+            return rc, msg
+        rc, _, _ = self._run_cmd("ls /var/lib/aide/aide.db* 2>/dev/null")
+        if rc == 0:
+            return True, "AIDE БД уже существует"
+        self._run_cmd("/usr/sbin/aideinit -y -f --background 2>/dev/null || /usr/sbin/aideinit -y -f 2>/dev/null || aideinit -y -f 2>/dev/null || true")
+        return True, "AIDE устанавливается в фоне (проверьте /var/lib/aide/aide.db через несколько минут)"
+
+    def _check_apparmor_enabled(self) -> Tuple[str, str]:
+        rc, out, _ = self._run_cmd("cat /sys/kernel/security/apparmor/profiles 2>/dev/null | head -1")
+        if rc == 0 and out:
+            rc2, out2, _ = self._run_cmd("aa-status 2>/dev/null | head -1")
+            if rc2 == 0:
+                return Status.PASS, ""
+        return Status.FAIL, "AppArmor неактивен"
+
+    def _fix_enable_apparmor(self) -> Tuple[bool, str]:
+        self._fix_install_package("apparmor")
+        self._fix_install_package("apparmor-profiles")
+        rc, _, _ = self._run_cmd("systemctl enable --now apparmor")
+        return rc == 0, "AppArmor включён (требуется перезагрузка для полного применения)"
+
+    def _check_aslr_enabled(self) -> Tuple[str, str]:
+        rc, out, _ = self._run_cmd("sysctl -n kernel.randomize_va_space")
+        if rc == 0 and out == "2":
+            return Status.PASS, ""
+        return Status.FAIL, f"ASLR: {out} (ожидалось 2)"
+
+    def _fix_enable_aslr(self) -> Tuple[bool, str]:
+        return self._fix_sysctl("kernel.randomize_va_space", "2")
+
+    def _check_prelink_removed(self) -> Tuple[str, str]:
+        return self._check_package_not_installed("prelink")
+
+    def _fix_remove_prelink(self) -> Tuple[bool, str]:
+        return self._fix_remove_package("prelink")
+
+    # ============ Services 2.2 ============
+
+    def _check_service_removed(self, pkg: str, service: str = None) -> Tuple[str, str]:
+        if service:
+            rc_svc, out_svc, _ = self._run_cmd(f"systemctl is-enabled {service} 2>/dev/null")
+            if rc_svc == 0 and out_svc not in ("disabled", "masked", "not-found"):
+                return Status.FAIL, f"Сервис {service} активен"
+        return self._check_package_not_installed(pkg)
+
+    def _fix_remove_service(self, pkg: str, service: str = None) -> Tuple[bool, str]:
+        if service:
+            self._fix_disable_service(service)
+        return self._fix_remove_package(pkg)
+
+    # ============ Logging (4.x) ============
+
+    def _check_journald_persistent(self) -> Tuple[str, str]:
+        rc, out, _ = self._run_cmd("grep -E '^Storage=' /etc/systemd/journald.conf 2>/dev/null")
+        if rc == 0 and "persistent" in out:
+            return Status.PASS, ""
+        rc2, out2, _ = self._run_cmd("test -d /var/log/journal && ls /var/log/journal/ 2>/dev/null | head -1")
+        if rc2 == 0:
+            return Status.PASS, ""
+        return Status.FAIL, "journald не настроен на persistent storage"
+
+    def _fix_journald_persistent(self) -> Tuple[bool, str]:
+        self._run_cmd("mkdir -p /var/log/journal")
+        self._run_cmd("sed -i 's/^#Storage=.*/Storage=persistent/' /etc/systemd/journald.conf")
+        self._run_cmd("sed -i 's/^Storage=.*/Storage=persistent/' /etc/systemd/journald.conf")
+        if self._run_cmd("grep -q '^Storage=' /etc/systemd/journald.conf")[0] != 0:
+            self._run_cmd("echo 'Storage=persistent' >> /etc/systemd/journald.conf")
+        self._run_cmd("systemctl restart systemd-journald")
+        return True, "journald переключён на persistent"
+
+    # ============ Пользователи (5.x, 6.2) ============
+
+    def _check_cron_restricted(self) -> Tuple[str, str]:
+        rc1, _, _ = self._run_cmd("test -f /etc/cron.allow && test -f /etc/at.allow")
+        rc2, out2, _ = self._run_cmd("stat -c '%a' /etc/cron.allow 2>/dev/null")
+        rc3, out3, _ = self._run_cmd("stat -c '%a' /etc/cron.allow 2>/dev/null | grep -q '^600$'")
+        if rc1 == 0:
+            return Status.PASS, ""
+        return Status.FAIL, "/etc/cron.allow или /etc/at.allow не настроены"
+
+    def _fix_cron_restricted(self) -> Tuple[bool, str]:
+        for f in ["/etc/cron.allow", "/etc/at.allow"]:
+            if not Path(f).exists():
+                Path(f).write_text("root\n")
+                Path(f).chmod(0o600)
+        return True, "cron/at ограничены"
+
+    def _check_pwquality(self) -> Tuple[str, str]:
+        rc, out, _ = self._run_cmd("grep -E 'pam_pwquality|pam_cracklib' /etc/pam.d/common-password 2>/dev/null")
+        if rc == 0 and out:
+            rc2, out2, _ = self._run_cmd("grep -E 'minlen|minclass' /etc/security/pwquality.conf 2>/dev/null")
+            if rc2 == 0:
+                return Status.PASS, ""
+        return Status.FAIL, "pam_pwquality не настроен"
+
+    def _fix_pwquality(self) -> Tuple[bool, str]:
+        self._fix_install_package("libpam-pwquality")
+        pwquality = Path("/etc/security/pwquality.conf")
+        if not pwquality.exists():
+            pwquality.write_text("# CIS pwquality\n")
+        for line in ["minlen = 14", "dcredit = -1", "ucredit = -1", "ocredit = -1", "lcredit = -1"]:
+            key = line.split("=")[0].strip()
+            rc, _, _ = self._run_cmd(rf"grep -qE '^{key}\s*=' {pwquality}")
+            if rc != 0:
+                self._run_cmd(f"echo '{line}' >> {pwquality}")
+        self._run_cmd('DEBIAN_FRONTEND=noninteractive pam-auth-update --package 2>/dev/null; '
+                      'grep -q "pam_pwquality.so" /etc/pam.d/common-password || '
+                      'sed -i "/^password.*pam_unix.so/i password requisite pam_pwquality.so retry=3" /etc/pam.d/common-password')
+        return True, "pwquality настроен"
+
+    def _check_sha512_password(self) -> Tuple[str, str]:
+        rc, out, _ = self._run_cmd(r"grep -E '^\s*password\s+.*\s+pam_unix\.so' /etc/pam.d/common-password 2>/dev/null | grep -q sha512")
+        if rc == 0:
+            return Status.PASS, ""
+        return Status.FAIL, "SHA512 для паролей не настроен"
+
+    def _fix_sha512_password(self) -> Tuple[bool, str]:
+        self._run_cmd("sed -i 's/pam_unix.so.*/& sha512/' /etc/pam.d/common-password")
+        return True, "SHA512 добавлен"
+
+    def _check_inactive_lock(self) -> Tuple[str, str]:
+        rc, out, _ = self._run_cmd("useradd -D | grep INACTIVE | cut -d= -f2")
+        if rc == 0 and out and int(out) > 0 and int(out) <= 30:
+            return Status.PASS, ""
+        return Status.FAIL, f"INACTIVE={out} (ожидается 1-30)"
+
+    def _fix_inactive_lock(self) -> Tuple[bool, str]:
+        self._run_cmd("useradd -D -f 30")
+        return True, "INACTIVE=30"
+
+    def _check_shadow_pass_max(self) -> Tuple[str, str]:
+        return self._check_login_def("PASS_MAX_DAYS", max_val=365, min_val=1)
+
+
     # ============ Network Checks ============
     
     def _check_sysctl(self, param: str, expected: str) -> Tuple[str, str]:
