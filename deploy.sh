@@ -77,6 +77,8 @@ python3 scripts/docs_generator.py
 mkdir -p "$DOCS_DIR"
 cp docs/SERVER.md "$DOCS_DIR/" 2>/dev/null || true
 
+chown -R "$ORIGINAL_USER:$ORIGINAL_USER" "$PROJECT_DIR"
+
 echo "===== Done ====="
 echo "Project: $PROJECT_DIR"
 echo "Docs:    $DOCS_DIR/SERVER.md"
