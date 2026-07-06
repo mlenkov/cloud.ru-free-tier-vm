@@ -64,6 +64,11 @@ python3 cis_manager.py fix --force
 python3 scripts/backup.py create    # Create backup
 python3 scripts/backup.py status    # Check status
 
+# Deploy pipeline test (snapshot → deploy → audit → rollback → report)
+sudo python3 scripts/test_deploy.py                  # Full cycle
+sudo python3 scripts/test_deploy.py --deploy         # Deploy only (dev)
+sudo python3 scripts/test_deploy.py --verify         # Rollback + verify
+
 # Docs
 python3 scripts/docs_generator.py   # Generate server docs
 ```
