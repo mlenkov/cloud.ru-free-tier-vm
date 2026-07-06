@@ -222,11 +222,11 @@ def main():
     system_info = get_system_info()
     readme = generate_readme(audit_data, system_info)
 
-    readme_path = Path("docs/README.md")
+    readme_path = Path("docs/SERVER.md")
     readme_path.parent.mkdir(parents=True, exist_ok=True)
     readme_path.write_text(readme, encoding='utf-8')
 
-    print(f"✅ docs/README.md generated: {readme_path.absolute()}")
+    print(f"✅ docs/SERVER.md generated: {readme_path.absolute()}")
     print(f"📊 Compliance Score: {audit_data.get('compliance_score', 0)}%")
 
 

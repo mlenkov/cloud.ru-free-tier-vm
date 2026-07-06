@@ -77,8 +77,8 @@ python3 scripts/backup.py create 2>/dev/null || true
 python3 scripts/docs_generator.py
 
 mkdir -p "$DOCS_DIR"
-cp docs/README.md "$DOCS_DIR/" 2>/dev/null || true
+cp docs/SERVER.md "$DOCS_DIR/" 2>/dev/null || true
 
 echo "===== Done ====="
 echo "Project: $PROJECT_DIR"
-echo "Docs:    $DOCS_DIR/README.md"
+echo "Docs:    $DOCS_DIR/SERVER.md"

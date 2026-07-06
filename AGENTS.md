@@ -75,14 +75,14 @@ python3 scripts/docs_generator.py   # Generate server docs
 
 **Server paths:**
 - Project: `~/cloud.ru-free-tier-vm/`
-- Generated docs: `~/docs/README.md`
+- Generated docs: `~/docs/SERVER.md`
 - Backups: `/var/backups/cloud.ru-free-tier-vm/`
 
 **Security rules:**
 - `.env` is root:root chmod 600 — do not expose contents
 - `BW_ACCESS_TOKEN` — never write to disk, env var only
 - `README.md` (root) — public, no server data
-- `docs/README.md` (server) — live audit data, gitignored
+- `docs/SERVER.md` (server) — live audit data, gitignored
 
 ## 6. Troubleshooting
 
