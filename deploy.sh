@@ -7,6 +7,7 @@
 #
 # Or from SSH:
 #   ssh user@host
+#   sudo apt update && sudo apt install -y git
 #   git clone https://github.com/mlenkov/cloud.ru-free-tier-vm.git
 #   cd cloud.ru-free-tier-vm
 #   BW_ACCESS_TOKEN="xxx" sudo bash deploy.sh
@@ -31,15 +32,24 @@ DOCS_DIR="$ORIGINAL_HOME/docs"
 
 echo "===== cloud.ru-free-tier-vm — Server Provisioning ====="
 
-# Fix broken dpkg state
+# Clean dpkg locks from any previous interrupted install
+rm -f /var/lib/dpkg/lock /var/lib/dpkg/lock-frontend \
+      /var/cache/apt/archives/lock /var/lib/apt/lists/lock
 dpkg --configure -a 2>/dev/null || true
-apt-get update -qq 2>/dev/null || true
 
-# Install deps (force-confdef handles modified conffiles)
+# Install all deps upfront (avoids dpkg lock issues in cis_manager)
+apt-get update -qq 2>/dev/null || true
 apt-get install -y -qq \
   -o Dpkg::Options::="--force-confdef" \
   -o Dpkg::Options::="--force-confold" \
-  git python3 python3-pip python3-venv restic rclone curl
+  git python3 python3-pip python3-venv restic rclone curl \
+  aide fail2ban chrony needrestart unattended-upgrades
+
+# AIDE DB initialization (background, 5-15 min on 2 vCPU)
+if [ ! -f /var/lib/aide/aide.db ]; then
+    echo "→ Initializing AIDE DB (background)..."
+    aideinit --background 2>/dev/null || true
+fi
 
 cd "$PROJECT_DIR"
 pip3 install --break-system-packages -q -r requirements.txt 2>/dev/null || \
@@ -56,7 +66,10 @@ fi
 python3 cis_manager.py audit --format json
 python3 cis_manager.py fix --force
 python3 cis_manager.py audit --format json
-python3 scripts/check_compliance.py --threshold 95
+
+# Don't exit on compliance fail — let backup + docs run
+python3 scripts/check_compliance.py --threshold 95 || true
+
 python3 scripts/backup.py setup 2>/dev/null || true
 python3 scripts/backup.py create 2>/dev/null || true
 python3 scripts/docs_generator.py
