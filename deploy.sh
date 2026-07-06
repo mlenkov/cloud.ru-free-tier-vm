@@ -46,10 +46,19 @@ apt-get install -y -qq \
   git python3 python3-pip python3-venv restic rclone curl \
   aide fail2ban chrony needrestart unattended-upgrades
 
-# AIDE DB initialization (background, 5-15 min on 2 vCPU)
+# AIDE DB initialization (background, ~2 min on 2 vCPU)
 if [ ! -f /var/lib/aide/aide.db ]; then
     echo "→ Initializing AIDE DB (background)..."
     aideinit --background 2>/dev/null || true
+    # Wait for completion and activate (poll up to 5 min)
+    for i in $(seq 1 30); do
+        sleep 10
+        if [ -f /var/lib/aide/aide.db.new ]; then
+            mv /var/lib/aide/aide.db.new /var/lib/aide/aide.db
+            echo "→ AIDE DB initialized and activated"
+            break
+        fi
+    done
 fi
 
 cd "$PROJECT_DIR"
