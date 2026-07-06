@@ -96,4 +96,4 @@ python3 scripts/docs_generator.py   # Generate server docs
 | dpkg conffile prompt | Re-run with `DEBIAN_FRONTEND=noninteractive` (already in deploy.sh) |
 | pip externally-managed | deploy.sh uses `--break-system-packages` |
 | aideinit timeout | Runs in background, check `/var/lib/aide/aide.db*` after 5 min |
-| git clone fails | Check SSH key agent or use HTTPS with GITHUB_TOKEN |
+| git clone fails | Check SSH key agent or internet connectivity |
