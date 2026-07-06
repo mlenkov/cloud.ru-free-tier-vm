@@ -50,6 +50,13 @@ if [ -n "$SERVER" ]; then
     echo "===== Deploying to ${SSH_DEST} ====="
     ssh-keygen -R "$SERVER" 2>/dev/null || true
 
+    echo "→ Testing SSH connection..."
+    if ! ssh -o BatchMode=yes -o ConnectTimeout=5 $SSH_OPTS "$SSH_DEST" true; then
+        echo "❌ SSH connection failed."
+        echo "   Check: user ($SSH_USER), key ($SSH_KEY), server reachability"
+        exit 1
+    fi
+
     ssh $SSH_OPTS "$SSH_DEST" "rm -rf cloud.ru-free-tier-vm && mkdir cloud.ru-free-tier-vm"
     tar cz --exclude='.git' --exclude='.opencode' --exclude='__pycache__' \
       --exclude='.env' --exclude='cis_data' --exclude='.github' \
@@ -69,7 +76,7 @@ ORIGINAL_USER="${SUDO_USER:-$(who am i | awk "{print \$1}")}"
 if [ -z "$ORIGINAL_USER" ] || [ "$ORIGINAL_USER" = "root" ]; then
     ORIGINAL_HOME="$HOME"
 else
-    ORIGINAL_HOME=$(getent passwd "$ORIGINAL_USER" | cut -d: -f6)
+    ORIGINAL_HOME=$(eval echo "~$ORIGINAL_USER")
 fi
 
 PROJECT_DIR="$ORIGINAL_HOME/cloud.ru-free-tier-vm"
