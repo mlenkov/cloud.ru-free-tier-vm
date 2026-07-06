@@ -4,12 +4,18 @@
 
 ## Быстрый старт
 
-```bash
-# На локальной машине из этого репозитория:
-BW_ACCESS_TOKEN="xxx" ./deploy.sh <hostname>
-```
+1. Скопируй репозиторий:
+   ```bash
+   git clone https://github.com/mlenkov/cloud.ru-free-tier-vm.git
+   cd cloud.ru-free-tier-vm
+   ```
 
-`deploy.sh` синхронизирует репозиторий на сервер и запускает: секреты → CIS аудит → исправление → бэкап → документация.
+2. Запусти deploy.sh с IP сервера:
+   ```bash
+   BW_ACCESS_TOKEN="xxx" ./deploy.sh <hostname>
+   ```
+
+`deploy.sh` синхронизирует проект на сервер и выполнит: секреты → CIS аудит → исправление → бэкап → генерация документации.
 
 ## Структура проекта
 
