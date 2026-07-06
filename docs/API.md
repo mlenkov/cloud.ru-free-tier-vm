@@ -36,8 +36,8 @@ curl -H "PRIVATE-TOKEN: $GITVERSE_TOKEN" \
 ```json
 {
   "id": 123,
-  "name": "vps-fortify",
-  "path": "user/vps-fortify",
+  "name": "cloud.ru-free-tier-vm",
+  "path": "user/cloud.ru-free-tier-vm",
   "default_branch": "main",
   "visibility": "private"
 }

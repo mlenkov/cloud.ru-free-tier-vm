@@ -40,11 +40,11 @@
 
 ## 🛠️ DevOps Automation
 
-This server is managed by **AI Employee** using GitVerse CI/CD.
+This server is managed by **AI Employee** using GitHub Actions CI/CD.
 
-### GitVerse Pipeline Stages
+### Pipeline Stages
 
-1. **Setup** - Automatically applies CIS standards
+1. **Setup** - Automatically applies CIS standards + backup 3-2-1
 2. **Verify** - Runs CIS audit on each commit
 3. **Docs** - Auto-generates documentation
 
@@ -56,26 +56,29 @@ This server is managed by **AI Employee** using GitVerse CI/CD.
 
 ## 🔑 Secrets Management
 
-All secrets are securely stored in **Bitwarden**.
+All secrets are securely stored in **Bitwarden Secrets Manager**.
 
 ### Configured Secrets
-- Bitwarden API credentials
-- GitVerse API token
-- Server SSH keys
+- cloud.ru S3 (access_key, secret_key, bucket, endpoint)
+- Yandex Disk OAuth token
+- Restic encryption password
+- GitHub PAT
 
 ## 📁 Project Structure
 
 ```
-vps-fortify/
-├── .gitlab-ci.yml          # GitVerse CI/CD pipeline
-├── start.sh                # Initial setup script
+cloud.ru-free-tier-vm/
+├── deploy.sh               # One-command installer
 ├── cis_manager.py          # CIS audit and fix tool
 ├── config/
-│   └── cis_standard.yaml   # CIS configuration
+│   ├── cis_standard.yaml   # CIS configuration
+│   ├── backup.yaml         # 3-2-1 backup config
+│   └── templates/          # README template
 ├── scripts/
+│   ├── backup.py           # 3-2-1 backup manager
+│   ├── secrets.py          # Bitwarden sync
 │   ├── docs_generator.py   # README generator
-│   ├── check_compliance.py # Compliance validator
-│   └── setup.sh            # Setup helper
+│   └── check_compliance.py # Compliance validator
 └── README.md               # This file
 ```
 
@@ -88,6 +91,10 @@ vps-fortify/
 ## 🔧 Quick Commands
 
 ```bash
+# Run full provisioning:
+#   BW_ACCESS_TOKEN="xxx" ssh app.mais.agency \
+#     "sudo bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/mlenkov/cloud.ru-free-tier-vm/main/deploy.sh)\""
+
 # Run CIS audit
 python3 cis_manager.py audit
 
@@ -97,13 +104,16 @@ python3 cis_manager.py fix --force
 # View audit history
 python3 cis_manager.py history
 
+# Create 3-2-1 backup
+python3 scripts/backup.py create
+
 # Generate documentation
 python3 scripts/docs_generator.py
 ```
 
 ## 📞 Support
 
-For issues, contact the DevOps team or check the GitVerse dashboard.
+For issues, check the GitHub repository or contact the DevOps team.
 
 ---
 

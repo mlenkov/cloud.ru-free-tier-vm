@@ -13,9 +13,10 @@ __pycache__/
 .DS_Store
 Thumbs.db
 
-# IDE
+# IDE & AI
 .vscode/
 .idea/
+.opencode/
 
 # Temp
 .gigacode/

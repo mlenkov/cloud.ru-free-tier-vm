@@ -133,7 +133,7 @@ jobs:
       - name: Commit documentation
         run: |
           git config --global user.name "AI Employee"
-          git config --global user.email "devops@vps-fortify.com"
+          git config --global user.email "devops@cloud.ru-free-tier-vm"
           git add README.md
           git commit -m "docs: update README with latest CIS audit results" || echo "No changes"
           git push

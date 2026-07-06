@@ -221,7 +221,7 @@ checks:
 ### Для нескольких серверов
 
 ```
-gitverse-vps-fortify/
+cloud.ru-free-tier-vm/
 ├── servers/
 │   ├── server1/
 │   │   ├── config.yaml

@@ -300,15 +300,15 @@ restic/
 
 ```bash
 # Clone repository
-git clone <repo-url> vps-fortify
-cd vps-fortify
+git clone <repo-url> cloud.ru-free-tier-vm
+cd cloud.ru-free-tier-vm
 
 # Set environment
 export BW_ACCESS_TOKEN="<token>"
 export BW_ORG_ID="<org-id>"
 
 # Run full provisioning
-bash start.sh
+bash deploy.sh
 ```
 
 ### Manual Execution

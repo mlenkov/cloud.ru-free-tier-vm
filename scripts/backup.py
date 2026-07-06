@@ -90,7 +90,7 @@ def cmd_create(args):
 
     env = _load_env()
     backup_cfg = config.get("backup", {})
-    local_path = backup_cfg.get("local_path", "/var/backups/vps-fortify")
+    local_path = backup_cfg.get("local_path", "/var/backups/cloud.ru-free-tier-vm")
     sources = backup_cfg.get("sources", ["/etc", "/home", "/var/www"])
     restic_pass = env.get("restic/password") or os.environ.get("RESTIC_PASSWORD")
 
@@ -156,7 +156,7 @@ def cmd_create(args):
     # --- Copy 3: Yandex Disk (offsite) ---
     print(f"\n🌐  Copy 3: Yandex Disk (offsite)")
     ya_token = env.get("yandex/disk/token") or os.environ.get("YA_DISK_TOKEN")
-    ya_path = env.get("yandex/disk/path") or backup_cfg.get("yandex_disk", {}).get("path", "/backups/vps-fortify")
+    ya_path = env.get("yandex/disk/path") or backup_cfg.get("yandex_disk", {}).get("path", "/backups/cloud.ru-free-tier-vm")
     yadisk_env = None
 
     if ya_token:
@@ -228,7 +228,7 @@ def cmd_list(args):
 
     env = _load_env()
     backup_cfg = config.get("backup", {})
-    local_path = backup_cfg.get("local_path", "/var/backups/vps-fortify")
+    local_path = backup_cfg.get("local_path", "/var/backups/cloud.ru-free-tier-vm")
     restic_pass = env.get("restic/password") or os.environ.get("RESTIC_PASSWORD")
 
     if not restic_pass:
@@ -264,7 +264,7 @@ def cmd_list(args):
         print(result.stdout if result.returncode == 0 else "   (пусто)")
 
     ya_token = env.get("yandex/disk/token") or os.environ.get("YA_DISK_TOKEN")
-    ya_path = env.get("yandex/disk/path") or backup_cfg.get("yandex_disk", {}).get("path", "/backups/vps-fortify")
+    ya_path = env.get("yandex/disk/path") or backup_cfg.get("yandex_disk", {}).get("path", "/backups/cloud.ru-free-tier-vm")
     if ya_token and _check_rclone():
         cf = _yadisk_config_file(ya_token)
         ya_env = {
@@ -314,7 +314,7 @@ def cmd_restore(args):
         }
     elif source == "yadisk":
         ya_token = env.get("yandex/disk/token") or os.environ.get("YA_DISK_TOKEN")
-        ya_path = env.get("yandex/disk/path") or backup_cfg.get("yandex_disk", {}).get("path", "/backups/vps-fortify")
+        ya_path = env.get("yandex/disk/path") or backup_cfg.get("yandex_disk", {}).get("path", "/backups/cloud.ru-free-tier-vm")
         cf = _yadisk_config_file(ya_token)
         repo = f"rclone:yadisk:{ya_path}"
         restic_env = {
@@ -324,7 +324,7 @@ def cmd_restore(args):
             "PATH": os.environ.get("PATH", "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"),
         }
     else:
-        local_path = backup_cfg.get("local_path", "/var/backups/vps-fortify")
+        local_path = backup_cfg.get("local_path", "/var/backups/cloud.ru-free-tier-vm")
         repo = f"local:{local_path}"
         restic_env = {"RESTIC_REPOSITORY": repo, "RESTIC_PASSWORD": restic_pass}
 
@@ -354,7 +354,7 @@ def cmd_restore(args):
 def cmd_status(args):
     config = _load_config()
     backup_cfg = config.get("backup", {})
-    local_path = backup_cfg.get("local_path", "/var/backups/vps-fortify")
+    local_path = backup_cfg.get("local_path", "/var/backups/cloud.ru-free-tier-vm")
     schedule = backup_cfg.get("schedule", "not configured")
 
     print(f"\n📊 Backup 3-2-1 Status")
@@ -397,7 +397,7 @@ def _get_size(path: str) -> str:
 def cmd_setup(args):
     config = _load_config()
     backup_cfg = config.get("backup", {})
-    local_path = backup_cfg.get("local_path", "/var/backups/vps-fortify")
+    local_path = backup_cfg.get("local_path", "/var/backups/cloud.ru-free-tier-vm")
     schedule = backup_cfg.get("schedule", "0 2 * * *")
 
     print("🔧 Настройка backup 3-2-1...")
@@ -417,7 +417,7 @@ def cmd_setup(args):
 
     # Init Yandex Disk restic repo
     ya_token = env.get("yandex/disk/token") or os.environ.get("YA_DISK_TOKEN")
-    ya_path = env.get("yandex/disk/path") or backup_cfg.get("yandex_disk", {}).get("path", "/backups/vps-fortify")
+    ya_path = env.get("yandex/disk/path") or backup_cfg.get("yandex_disk", {}).get("path", "/backups/cloud.ru-free-tier-vm")
     if ya_token and restic_pass and _check_rclone():
         cf = _yadisk_config_file(ya_token)
         ya_env = {

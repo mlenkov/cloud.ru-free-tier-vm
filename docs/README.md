@@ -27,8 +27,8 @@
 ### Установка
 ```bash
 # Клонировать репозиторий
-git clone <gitverse-repo-url> vps-fortify
-cd vps-fortify
+git clone <repo-url> cloud.ru-free-tier-vm
+cd cloud.ru-free-tier-vm
 
 # Запустить начальную настройку
 bash start.sh

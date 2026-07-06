@@ -1,5 +1,5 @@
 # Backup 3-2-1 Configuration
-# Copy 1: Local   — /var/backups/vps-fortify
+# Copy 1: Local   — /var/backups/cloud.ru-free-tier-vm
 # Copy 2: Offsite — cloud.ru S3 Object Storage
 # Copy 3: Remote  — Yandex Disk
 
@@ -15,7 +15,7 @@ backup:
     - /root
 
   # Локальное хранилище (restic)
-  local_path: /var/backups/vps-fortify
+  local_path: /var/backups/cloud.ru-free-tier-vm
 
   # Расписание (cron)
   schedule: "0 2 * * *"
@@ -36,4 +36,4 @@ backup:
 
   # Yandex Disk (offsite)
   yandex_disk:
-    path: "/backups/vps-fortify"
+    path: "/backups/cloud.ru-free-tier-vm"
