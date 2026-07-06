@@ -60,10 +60,6 @@ cd "$PROJECT_DIR"
 pip3 install --break-system-packages -q -r requirements.txt 2>/dev/null || \
 PIP_REQUIRE_VIRTUALENV=false pip3 install -q -r requirements.txt
 
-if [ -f "$ORIGINAL_HOME/.env" ] && [ ! -f .env ]; then
-    ln -sf "$ORIGINAL_HOME/.env" .env
-fi
-
 if [ -n "${BW_ACCESS_TOKEN:-}" ]; then
     python3 scripts/secrets.py sync
 fi
