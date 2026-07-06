@@ -6,7 +6,6 @@ AI Employee: управление секретами для VPS
 
 import argparse
 import os
-import re
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -47,9 +46,8 @@ def cmd_sync(args):
 
     env_data = {}
     for s in secrets:
-        env_name = re.sub(r'[^a-zA-Z0-9]', '_', s.key).upper()
-        env_data[env_name] = s.value
-        print(f"  ✅ {s.key} → {env_name}")
+        env_data[s.key] = s.value
+        print(f"  ✅ {s.key}")
 
     output_path = Path(args.output) if args.output else Path(".env")
     lines = []

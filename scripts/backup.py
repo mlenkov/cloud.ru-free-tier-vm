@@ -385,7 +385,7 @@ def cmd_status(args):
     print()
 
     # Check cron/systemd timer
-    cron = _run(["crontab", "-l"], timeout=10)
+    cron = _run(["sudo", "crontab", "-l"], timeout=10)
     backup_cron = [l for l in cron.stdout.split("\n") if "backup.py" in l]
     if backup_cron:
         print("✅ Cron: настроен")
