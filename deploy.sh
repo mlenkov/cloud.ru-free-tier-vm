@@ -20,6 +20,7 @@ SERVER="${1:-}"
 if [ -n "$SERVER" ]; then
     SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
     echo "===== Deploying to $SERVER ====="
+    ssh-keygen -R "$SERVER" 2>/dev/null || true
     ssh "$SERVER" "sudo rm -rf cloud.ru-free-tier-vm && mkdir cloud.ru-free-tier-vm"
     tar cz --exclude='.git' --exclude='.opencode' --exclude='__pycache__' \
       --exclude='.env' --exclude='cis_data' --exclude='.github' \
