@@ -52,7 +52,10 @@ def cmd_sync(args):
         print(f"  ✅ {s.key} → {env_name}")
 
     output_path = Path(args.output) if args.output else Path(".env")
-    lines = [f"{k}='{v.replace(\"'\", \"'\\\\''\")}'" for k, v in env_data.items()]
+    lines = []
+    for k, v in env_data.items():
+        escaped = v.replace("'", "'\\''")
+        lines.append(f"{k}='{escaped}'")
     output_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
     output_path.chmod(0o600)
     print(f"\n✅ Секреты сохранены в {output_path} (chmod 600)")
