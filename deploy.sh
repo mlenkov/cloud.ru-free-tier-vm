@@ -66,7 +66,7 @@ if [ -n "$SERVER" ]; then
       -C "$SCRIPT_DIR" . | ssh $SSH_OPTS "$SSH_DEST" "tar xz -C cloud.ru-free-tier-vm"
     echo "===== Running provisioning ====="
     ssh -t $SSH_OPTS "$SSH_DEST" \
-      "BW_ACCESS_TOKEN=\"${BW_ACCESS_TOKEN:-}\" _DEPLOY_SERVER_MODE=1 sudo bash cloud.ru-free-tier-vm/deploy.sh"
+      "sudo bash -c 'BW_ACCESS_TOKEN=\"${BW_ACCESS_TOKEN:-}\" _DEPLOY_SERVER_MODE=1 bash cloud.ru-free-tier-vm/deploy.sh'"
     exit $?
 fi
 
