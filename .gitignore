@@ -25,3 +25,4 @@ Thumbs.db
 
 # Server-generated docs (contains IP, hostname, HW specs)
 docs/README.md
+docs/connection.md
