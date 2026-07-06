@@ -127,16 +127,19 @@ def cmd_create(args):
     print(f"\n☁️  Copy 2: cloud.ru S3")
     s3_key = env.get("cloudru/s3/access-key") or os.environ.get("AWS_ACCESS_KEY_ID")
     s3_secret = env.get("cloudru/s3/secret-key") or os.environ.get("AWS_SECRET_ACCESS_KEY")
-    s3_bucket = env.get("cloudru/s3/bucket") or backup_cfg.get("s3", {}).get("bucket", "")
-    s3_endpoint = env.get("cloudru/s3/endpoint") or backup_cfg.get("s3", {}).get("endpoint", "")
-    s3_region = backup_cfg.get("s3", {}).get("region", "ru-central-1")
+    s3_cfg = backup_cfg.get("s3", {})
+    s3_bucket = s3_cfg.get("bucket") or env.get("cloudru/s3/bucket") or ""
+    s3_endpoint = s3_cfg.get("endpoint") or env.get("cloudru/s3/endpoint") or ""
+    s3_prefix = s3_cfg.get("prefix", "")
+    s3_region = s3_cfg.get("region", "ru-central-1")
     tenant_id = env.get("cloudru/s3/tenant-id")
     if tenant_id and s3_key and ":" not in s3_key:
         s3_key = f"{tenant_id}:{s3_key}"
 
     if s3_key and s3_secret:
         s3_host = s3_endpoint.replace("https://", "").replace("http://", "")
-        s3_repo = f"s3:{s3_host}/{s3_bucket}"
+        s3_path = f"{s3_bucket}/{s3_prefix}".strip("/") if s3_prefix else s3_bucket
+        s3_repo = f"s3:{s3_host}/{s3_path}"
         s3_env = {
             "RESTIC_REPOSITORY": s3_repo,
             "RESTIC_PASSWORD": restic_pass,
@@ -161,7 +164,7 @@ def cmd_create(args):
     # --- Copy 3: Yandex Disk (offsite) ---
     print(f"\n🌐  Copy 3: Yandex Disk (offsite)")
     ya_token = env.get("yandex/disk/token") or os.environ.get("YA_DISK_TOKEN")
-    ya_path = env.get("yandex/disk/path") or backup_cfg.get("yandex_disk", {}).get("path", "/backups/cloud.ru-free-tier-vm")
+    ya_path = backup_cfg.get("yandex_disk", {}).get("path") or env.get("yandex/disk/path") or "/backups/cloud.ru-free-tier-vm"
     yadisk_env = None
 
     if ya_token:
@@ -248,17 +251,20 @@ def cmd_list(args):
 
     s3_key = env.get("cloudru/s3/access-key") or os.environ.get("AWS_ACCESS_KEY_ID")
     s3_secret = env.get("cloudru/s3/secret-key") or os.environ.get("AWS_SECRET_ACCESS_KEY")
-    s3_endpoint = env.get("cloudru/s3/endpoint") or backup_cfg.get("s3", {}).get("endpoint", "")
-    s3_bucket = env.get("cloudru/s3/bucket") or backup_cfg.get("s3", {}).get("bucket", "")
-    s3_region = backup_cfg.get("s3", {}).get("region", "ru-central-1")
+    s3_cfg = backup_cfg.get("s3", {})
+    s3_endpoint = s3_cfg.get("endpoint") or env.get("cloudru/s3/endpoint") or ""
+    s3_bucket = s3_cfg.get("bucket") or env.get("cloudru/s3/bucket") or ""
+    s3_prefix = s3_cfg.get("prefix", "")
+    s3_region = s3_cfg.get("region", "ru-central-1")
     tenant_id = env.get("cloudru/s3/tenant-id")
     if tenant_id and s3_key and ":" not in s3_key:
         s3_key = f"{tenant_id}:{s3_key}"
 
     if s3_key and s3_secret:
         s3_host = s3_endpoint.replace("https://", "").replace("http://", "")
+        s3_path = f"{s3_bucket}/{s3_prefix}".strip("/") if s3_prefix else s3_bucket
         s3_env = {
-            "RESTIC_REPOSITORY": f"s3:{s3_host}/{s3_bucket}",
+            "RESTIC_REPOSITORY": f"s3:{s3_host}/{s3_path}",
             "RESTIC_PASSWORD": restic_pass,
             "AWS_ACCESS_KEY_ID": s3_key,
             "AWS_SECRET_ACCESS_KEY": s3_secret,
@@ -269,7 +275,7 @@ def cmd_list(args):
         print(result.stdout if result.returncode == 0 else "   (пусто)")
 
     ya_token = env.get("yandex/disk/token") or os.environ.get("YA_DISK_TOKEN")
-    ya_path = env.get("yandex/disk/path") or backup_cfg.get("yandex_disk", {}).get("path", "/backups/cloud.ru-free-tier-vm")
+    ya_path = backup_cfg.get("yandex_disk", {}).get("path") or env.get("yandex/disk/path") or "/backups/cloud.ru-free-tier-vm"
     if ya_token and _check_rclone():
         cf = _yadisk_config_file(ya_token)
         ya_env = {
@@ -302,14 +308,17 @@ def cmd_restore(args):
     if source == "s3":
         s3_key = env.get("cloudru/s3/access-key") or os.environ.get("AWS_ACCESS_KEY_ID")
         s3_secret = env.get("cloudru/s3/secret-key") or os.environ.get("AWS_SECRET_ACCESS_KEY")
-        s3_bucket = env.get("cloudru/s3/bucket") or backup_cfg.get("s3", {}).get("bucket", "")
-        s3_endpoint = env.get("cloudru/s3/endpoint") or backup_cfg.get("s3", {}).get("endpoint", "")
-        s3_region = backup_cfg.get("s3", {}).get("region", "ru-central-1")
+        s3_cfg = backup_cfg.get("s3", {})
+        s3_bucket = s3_cfg.get("bucket") or env.get("cloudru/s3/bucket") or ""
+        s3_endpoint = s3_cfg.get("endpoint") or env.get("cloudru/s3/endpoint") or ""
+        s3_prefix = s3_cfg.get("prefix", "")
+        s3_region = s3_cfg.get("region", "ru-central-1")
         tenant_id = env.get("cloudru/s3/tenant-id")
         if tenant_id and s3_key and ":" not in s3_key:
             s3_key = f"{tenant_id}:{s3_key}"
         s3_host = s3_endpoint.replace("https://", "").replace("http://", "")
-        repo = f"s3:{s3_host}/{s3_bucket}"
+        s3_path = f"{s3_bucket}/{s3_prefix}".strip("/") if s3_prefix else s3_bucket
+        repo = f"s3:{s3_host}/{s3_path}"
         restic_env = {
             "RESTIC_REPOSITORY": repo,
             "RESTIC_PASSWORD": restic_pass,
@@ -319,7 +328,7 @@ def cmd_restore(args):
         }
     elif source == "yadisk":
         ya_token = env.get("yandex/disk/token") or os.environ.get("YA_DISK_TOKEN")
-        ya_path = env.get("yandex/disk/path") or backup_cfg.get("yandex_disk", {}).get("path", "/backups/cloud.ru-free-tier-vm")
+        ya_path = backup_cfg.get("yandex_disk", {}).get("path") or env.get("yandex/disk/path") or "/backups/cloud.ru-free-tier-vm"
         cf = _yadisk_config_file(ya_token)
         repo = f"rclone:yadisk:{ya_path}"
         restic_env = {
@@ -422,7 +431,7 @@ def cmd_setup(args):
 
     # Init Yandex Disk restic repo
     ya_token = env.get("yandex/disk/token") or os.environ.get("YA_DISK_TOKEN")
-    ya_path = env.get("yandex/disk/path") or backup_cfg.get("yandex_disk", {}).get("path", "/backups/cloud.ru-free-tier-vm")
+    ya_path = backup_cfg.get("yandex_disk", {}).get("path") or env.get("yandex/disk/path") or "/backups/cloud.ru-free-tier-vm"
     if ya_token and restic_pass and _check_rclone():
         cf = _yadisk_config_file(ya_token)
         ya_env = {
