@@ -62,7 +62,7 @@ fi
 
 cd "$PROJECT_DIR"
 pip3 install --break-system-packages -q -r requirements.txt 2>/dev/null || \
-PIP_REQUIRE_VIRTUALENV=false pip3 install -q -r requirements.txt
+PIP_REQUIRE_VIRTUALENV=false pip3 install --break-system-packages -q -r requirements.txt
 
 if [ -z "${BW_ACCESS_TOKEN:-}" ]; then
     echo "⚠️  BW_ACCESS_TOKEN не задан. Секреты не синхронизируются."

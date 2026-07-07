@@ -345,11 +345,15 @@ def cmd_status(args):
     backup_cfg = config.get("backup", {})
     schedule = backup_cfg.get("schedule", "not configured")
 
+    env = _load_env()
+    s3_configured = bool(env.get("cloudru/s3/access-key") or os.environ.get("AWS_ACCESS_KEY_ID"))
+    ya_configured = bool(env.get("yandex/disk/token") or os.environ.get("YA_DISK_TOKEN"))
+
     print(f"\n📊 Backup 1-2-1 Status")
     print("=" * 60)
     print(f"⏰ Расписание: {schedule}")
-    print(f"☁️  S3: {'настроен' if backup_cfg.get('s3', {}).get('bucket') else 'не настроен'}")
-    print(f"🌐 Yandex Disk: {'настроен' if backup_cfg.get('yandex_disk', {}).get('path') else 'не настроен'}")
+    print(f"☁️  S3: {'настроен' if s3_configured else 'не настроен'}")
+    print(f"🌐 Yandex Disk: {'настроен' if ya_configured else 'не настроен'}")
 
     # Check cron/systemd timer
     cron = _run(["sudo", "crontab", "-l"], timeout=10)
