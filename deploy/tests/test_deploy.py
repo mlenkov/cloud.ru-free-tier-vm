@@ -77,9 +77,10 @@ def load_connection() -> dict:
 class SSHClient:
     def __init__(self, conn: dict):
         self.conn = conn
+        key = Path(conn["key"]).expanduser()
         self.prefix = ["ssh", "-o", "StrictHostKeyChecking=no",
                        "-o", "ServerAliveInterval=30",
-                       "-i", conn["key"],
+                       "-i", str(key),
                        f"{conn['user']}@{conn['ip']}"]
         self.remote_dir = self._resolve_home()
 
@@ -87,9 +88,9 @@ class SSHClient:
         rc, out, _ = self.run(f"eval echo ~{self.conn['user']}", sudo=False, timeout=10)
         return out.strip() if rc == 0 else f"/home/{self.conn['user']}"
 
-    def run(self, cmd: str, timeout: int = 60, sudo: bool = True) -> tuple:
-        wrapped = f"sudo bash -c '{cmd}'" if sudo else cmd
-        full_cmd = self.prefix + [wrapped]
+    def run(self, cmd: str, timeout: int = 60, sudo: bool = False) -> tuple:
+        s = "sudo " if sudo else ""
+        full_cmd = self.prefix + [f"cd {self.remote_dir} && {s}{cmd}"]
         try:
             r = subprocess.run(full_cmd, capture_output=True, text=True, timeout=timeout)
             return r.returncode, r.stdout.strip(), r.stderr.strip()
@@ -99,8 +100,9 @@ class SSHClient:
             return -1, "", str(e)
 
     def put_file(self, local: Path, remote: str, timeout: int = 30):
+        key = Path(self.conn["key"]).expanduser()
         cmd = ["scp", "-o", "StrictHostKeyChecking=no",
-               "-i", self.conn["key"],
+               "-i", str(key),
                str(local),
                f"{self.conn['user']}@{self.conn['ip']}:{remote}"]
         try:
@@ -112,6 +114,7 @@ class SSHClient:
     def put_project(self):
         _info("Uploading project to server...")
         tmp_tar = tempfile.mktemp(suffix=".tar.gz")
+        remote_tar = f"/tmp/{Path(tmp_tar).name}"
         try:
             subprocess.run(
                 ["tar", "-czf", tmp_tar, "-C", str(PROJECT_DIR),
@@ -119,11 +122,10 @@ class SSHClient:
                  "--exclude=.test_snapshot", "--exclude=deploy/tests", "."],
                 capture_output=True, text=True, timeout=30, check=True)
             self.run(f"mkdir -p {self.remote_dir}", timeout=10)
-            local_tar = f"{self.remote_dir}.tar.gz"
-            self.put_file(Path(tmp_tar), local_tar)
+            self.put_file(Path(tmp_tar), remote_tar)
             rc, out, err = self.run(
-                f"cd {self.remote_dir} && tar -xzf {local_tar} "
-                f"&& rm {local_tar}", timeout=30)
+                f"tar -xzf {remote_tar} -C {self.remote_dir} "
+                f"&& rm {remote_tar}", timeout=30)
             if rc != 0:
                 print(f"  extract failed: {err}")
                 sys.exit(1)
@@ -144,12 +146,12 @@ class SystemSnapshot:
         _info("Capturing system state...")
         self.timestamp = datetime.now().isoformat()
         for param in TRACKED_SYSCTL:
-            rc, out, _ = ssh.run(f"sysctl -n {param} 2>/dev/null")
+            rc, out, _ = ssh.run(f"sysctl -n {param} 2>/dev/null", sudo=True)
             if rc == 0:
                 self.sysctl[param] = out.strip()
         for svc in TRACKED_SERVICES:
-            _, enabled, _ = ssh.run(f"systemctl is-enabled {svc} 2>/dev/null")
-            _, active, _ = ssh.run(f"systemctl is-active {svc} 2>/dev/null")
+            _, enabled, _ = ssh.run(f"systemctl is-enabled {svc} 2>/dev/null", sudo=True)
+            _, active, _ = ssh.run(f"systemctl is-active {svc} 2>/dev/null", sudo=True)
             if enabled or active:
                 self.services[svc] = {"enabled": enabled.strip(), "active": active.strip()}
         for path in TRACKED_PERMISSIONS:
@@ -164,25 +166,25 @@ class SystemSnapshot:
     def restore(self, ssh: SSHClient):
         _info("Restoring system state...")
         for param, value in self.sysctl.items():
-            ssh.run(f"sysctl -w {param}={value}", timeout=10)
+            ssh.run(f"sysctl -w {param}={value}", timeout=10, sudo=True)
         for svc, state in self.services.items():
             if state["enabled"] == "enabled":
-                ssh.run(f"systemctl enable --now {svc}", timeout=15)
+                ssh.run(f"systemctl enable --now {svc}", timeout=15, sudo=True)
             elif state["enabled"] == "disabled":
-                ssh.run(f"systemctl disable --now {svc}", timeout=15)
+                ssh.run(f"systemctl disable --now {svc}", timeout=15, sudo=True)
         for path, perms in self.permissions.items():
             parts = perms.split(":")
             if len(parts) == 3:
-                ssh.run(f"chmod {parts[0]} {path} && chown {parts[1]}:{parts[2]} {path}", timeout=10)
-        ssh.run("systemctl restart ssh fail2ban 2>/dev/null || true", timeout=15)
+                ssh.run(f"chmod {parts[0]} {path} && chown {parts[1]}:{parts[2]} {path}", timeout=10, sudo=True)
+        ssh.run("systemctl restart ssh fail2ban 2>/dev/null || true", timeout=15, sudo=True)
         _ok("System restored")
 
     def _run_audit(self, ssh: SSHClient) -> dict:
-        rc, out, err = ssh.run(f"cd {ssh.remote_dir} && python3 cis/manager.py audit --format json 2>/dev/null", timeout=120)
+        rc, out, err = ssh.run(f"python3 cis/manager.py audit --format json 2>/dev/null", timeout=120, sudo=True)
         if rc != 0:
             return {"passed": 0, "failed": 0, "errors": 0, "compliance_score": 0}
         try:
-            rc2, out2, _ = ssh.run(f"cat {ssh.remote_dir}/cis/data/current_audit.json 2>/dev/null")
+            rc2, out2, _ = ssh.run(f"cat cis/data/current_audit.json 2>/dev/null")
             if rc2 == 0:
                 d = json.loads(out2)
                 return {"passed": d.get("passed", 0), "failed": d.get("failed", 0),
@@ -193,11 +195,11 @@ class SystemSnapshot:
         return {"passed": 0, "failed": 0, "errors": 0, "compliance_score": 0}
 
 
-def run_deploy(ssh: SSHClient, token: str = "") -> tuple:
-    _info("Running deploy...")
-    env_var = f"BW_ACCESS_TOKEN='{token}'" if token else ""
-    cmd = f"cd {ssh.remote_dir} && {env_var} bash deploy/deploy.sh"
-    rc, out, err = ssh.run(cmd, timeout=600)
+    def run_deploy(ssh: SSHClient, token: str = "") -> tuple:
+        _info("Running deploy...")
+        env_var = f"BW_ACCESS_TOKEN={token}" if token else ""
+        cmd = f"env {env_var} bash deploy/deploy.sh"
+        rc, out, err = ssh.run(cmd, timeout=600, sudo=True)
     if rc != 0:
         print(f"  deploy exit code: {rc}")
         if err:
