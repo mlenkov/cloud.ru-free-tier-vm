@@ -17,12 +17,14 @@ Ask for these in order. Do NOT proceed until each is confirmed.
 
 | What | Example | Stored in |
 |------|---------|-----------|
+| **Host** | `app.mais.agency` | `docs/connection.md` |  
 | **IP address** | `91.224.87.211` | `docs/connection.md` |
 | **BW_ACCESS_TOKEN** (optional) | `bws_token_xxx` | env var only, never on disk. If user has no BSM, skip — deploy will work with local backup only |
 | **SSH key path** | `~/.ssh/MacBuka` | `docs/connection.md` |
 | **SSH user** | `mais` | `docs/connection.md` |
 
 Write connection info to `docs/connection.md` (gitignored). **Never write BW_ACCESS_TOKEN to any file.**
+Use `Host` field (not IP) for all SSH commands — see §7.
 
 ## 3. Provisioning Workflow
 
@@ -34,6 +36,8 @@ Execute sequentially:
    sudo apt update && sudo apt install -y git
    git clone https://github.com/mlenkov/cloud.ru-free-tier-vm.git .
    sudo BW_ACCESS_TOKEN="xxx" bash deploy/deploy.sh
+   # Non-interactive (no TTY) — pass token explicitly:
+   ssh -o ServerAliveInterval=60 "<user>@<host>" "sudo BW_ACCESS_TOKEN='skip' bash deploy/deploy.sh"
 2. Verify: 59/59 PASS, 100% compliance
 3. Verify backup: cron @ 2am, status (python3 backup/backup.py status)
 4. Verify AIDE: /var/lib/aide/aide.db exists
@@ -122,3 +126,29 @@ sudo python3 deploy/tests/test_deploy.py
 - `README.md` (root) — public, no server data
 - `docs/SERVER.md` (server) — live audit data, gitignored
 - `docs/connection.md` — IP/user/key (gitignored), updated manually
+
+## 7. SSH Connection Rules (CRITICAL)
+
+**Always use hostname (not IP) for SSH connections** to ensure SSH config is applied:
+```bash
+# ✅ Correct — uses ~/.ssh/config with IdentitiesOnly=yes
+ssh app.mais.agency "command"
+
+# ❌ Wrong — bypasses SSH config, may lose access
+ssh mais@91.224.87.211 "command"
+```
+
+**Never modify server SSH configuration** (sshd_config, authorized_keys, permissions).
+The server's SSH config is correct as-is. Any change will break access.
+
+**For non-interactive deploy** (no TTY), always pass `BW_ACCESS_TOKEN` explicitly:
+```bash
+# Without BSM token — skip prompt:
+ssh app.mais.agency "sudo BW_ACCESS_TOKEN='skip' bash deploy/deploy.sh"
+
+# With BSM token:
+ssh app.mais.agency "sudo BW_ACCESS_TOKEN='bws_token_xxx' bash deploy/deploy.sh"
+```
+
+**Do NOT use `-o UserKnownHostsFile=/dev/null`** — it corrupts known_hosts state.
+Use `ssh-keygen -R <host>` to clean host keys instead.

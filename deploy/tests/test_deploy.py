@@ -68,9 +68,13 @@ def load_connection() -> dict:
     if m: info["user"] = m.group(1)
     m = re.search(r'\*\*SSH Key\*\*:\s*(\S+)', text)
     if m: info["key"] = m.group(1)
+    m = re.search(r'\*\*Host\*\*:\s*(\S+)', text)
+    if m: info["hostname"] = m.group(1)
     if not all(k in info for k in ("ip", "user", "key")):
         print("Connection file missing required fields (IP, User, SSH Key)")
         sys.exit(1)
+    if "hostname" not in info:
+        info["hostname"] = f"{info['user']}@{info['ip']}"
     return info
 
 
@@ -78,10 +82,12 @@ class SSHClient:
     def __init__(self, conn: dict):
         self.conn = conn
         key = Path(conn["key"]).expanduser()
+        hostname = conn.get("hostname", f"{conn['user']}@{conn['ip']}")
         self.prefix = ["ssh", "-o", "StrictHostKeyChecking=no",
                        "-o", "ServerAliveInterval=30",
+                       "-o", "IdentitiesOnly=yes",
                        "-i", str(key),
-                       f"{conn['user']}@{conn['ip']}"]
+                       hostname]
         self.remote_dir = f"/home/{conn['user']}"
         resolved = self._resolve_home()
         if resolved:
@@ -106,12 +112,15 @@ class SSHClient:
         except Exception as e:
             return -1, "", str(e)
 
+    def _scp_target(self) -> str:
+        return self.conn.get("hostname", f"{self.conn['user']}@{self.conn['ip']}")
+
     def put_file(self, local: Path, remote: str, timeout: int = 30):
         key = Path(self.conn["key"]).expanduser()
         cmd = ["scp", "-o", "StrictHostKeyChecking=no",
                "-i", str(key),
                str(local),
-               f"{self.conn['user']}@{self.conn['ip']}:{remote}"]
+               f"{self._scp_target()}:{remote}"]
         try:
             subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, check=True)
         except Exception as e:
@@ -205,7 +214,7 @@ class SystemSnapshot:
 
 def run_deploy(ssh: SSHClient, token: str = "") -> tuple:
     _info("Running deploy...")
-    env_var = f"BW_ACCESS_TOKEN={token}" if token else ""
+    env_var = f"BW_ACCESS_TOKEN={token}" if token else "BW_ACCESS_TOKEN=skip"
     cmd = f"env {env_var} bash deploy/deploy.sh"
     rc, out, err = ssh.run(cmd, timeout=600, sudo=True)
     if rc != 0:
