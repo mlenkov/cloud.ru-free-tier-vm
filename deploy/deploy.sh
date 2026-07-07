@@ -1,14 +1,12 @@
 #!/bin/bash
 # cloud.ru-free-tier-vm — Server provisioning & CIS audit
-# Repo: https://github.com/mlenkov/cloud.ru-free-tier-vm
-#
 # Usage:
 #   sudo BW_ACCESS_TOKEN="xxx" bash deploy/deploy.sh
 #
 # Or from SSH:
 #   ssh user@host
 #   sudo apt update && sudo apt install -y git
-#   git clone https://github.com/mlenkov/cloud.ru-free-tier-vm.git .
+#   git clone <repo-url> .   # e.g. https://github.com/mlenkov/cloud.ru-free-tier-vm.git
 #   sudo BW_ACCESS_TOKEN="xxx" bash deploy/deploy.sh
 
 set -euo pipefail
@@ -29,6 +27,9 @@ fi
 
 PROJECT_DIR="$ORIGINAL_HOME"
 DOCS_DIR="$ORIGINAL_HOME/docs"
+
+# Detect origin URL (for forkers)
+REPO_URL="${REPO_URL:-$(git remote get-url origin 2>/dev/null || echo 'https://github.com/mlenkov/cloud.ru-free-tier-vm.git')}"
 
 # Auto-relocate if cloned into subdirectory (git clone without .)
 SUB_DIR="$PROJECT_DIR/cloud.ru-free-tier-vm"
