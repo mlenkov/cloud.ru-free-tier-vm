@@ -31,25 +31,25 @@ Use `Host` field (not IP) for all SSH commands — see §7.
 Execute sequentially:
 
 ```
-1. SSH to server, clone repo, run deploy.sh:
-   ssh -o ServerAliveInterval=60 -i <key> <user>@<ip>
-   sudo apt update && sudo apt install -y git
-   git clone https://github.com/mlenkov/cloud.ru-free-tier-vm.git .
-   sudo BW_ACCESS_TOKEN="xxx" bash deploy/deploy.sh
-   # Non-interactive (no TTY) — pass token explicitly:
-   ssh -o ServerAliveInterval=60 "<user>@<host>" "sudo BW_ACCESS_TOKEN='skip' bash deploy/deploy.sh"
+1. Upload project tar + non-interactive deploy (no TTY):
+   cd <project-dir> && tar czf /tmp/deploy.tar.gz .
+   scp /tmp/deploy.tar.gz <host>:/home/mais/
+   ssh <host> "cd /home/mais && tar xzf deploy.tar.gz && rm deploy.tar.gz && \
+     sudo BW_ACCESS_TOKEN='skip' bash deploy/deploy.sh"
 2. Verify: 59/59 PASS, 100% compliance
 3. Verify backup: cron @ 2am, status (python3 backup/backup.py status)
 4. Verify AIDE: /var/lib/aide/aide.db exists
-5. Create ADRs in docs/adr/:
+5. Verify nftables: sudo nft list ruleset
+6. Verify monitor cron: sudo crontab -l | grep monitor
+7. Create ADRs in docs/adr/:
    - 001-cis-debian-12-level-1.md — почему этот профиль
-   - 002-fail2ban-systemd.md — Debian 12, нет auth.log
+   - 002-nftables-instead-of-fail2ban.md — key-only SSH + default-deny
    - 003-aide-background-init.md — background + poll
    - 004-secrets-management.md — BSM + manual .env fallback
    - 005-1-2-1-backup.md — restic, S3 + Yandex
    - 006-s3-yandex-optional.md — graceful skip
    Update docs/adr/INDEX.md
-6. Report completion
+8. Report completion
 ```
 
 Use `deploy/deploy.sh` as the automation engine. It handles:
@@ -60,8 +60,6 @@ Use `deploy/deploy.sh` as the automation engine. It handles:
 - Documentation generation (SERVER.md)
 - Self-cleanup: removes `deploy/`, `.git/`, `.github/`, `.gitignore`, `requirements.txt`
 
-Do NOT modify `deploy/deploy.sh`. If it fails, report the error and stop.
-
 ## 4. ADR Creation
 
 After deploy, create ADRs in `docs/adr/`. Use `docs/adr/000-template.md` as format.
@@ -71,7 +69,7 @@ After deploy, create ADRs in `docs/adr/`. Use `docs/adr/000-template.md` as form
 | ADR | Title | Context (look at) |
 |-----|-------|-------------------|
 | 001 | CIS Debian 12 Level 1 | `cis/standard.yaml`, `cis/manager.py` |
-| 002 | fail2ban backend = systemd | `deploy/deploy.sh` (jail.local generation) |
+| 002 | nftables instead of fail2ban | `deploy/deploy.sh` (nftables.conf generation) |
 | 003 | AIDE background init + poll | `deploy/deploy.sh` (aideinit loop) |
 | 004 | Secrets management | `deploy/secrets.py`, `deploy/deploy.sh` (BSM + .env merge) |
 | 005 | 1-2-1 backup strategy | `backup/config.yaml`, `backup/backup.py` |
@@ -98,12 +96,19 @@ python3 backup/backup.py status    # Check status + cron
 python3 backup/backup.py list      # List snapshots
 python3 backup/backup.py restore   # Restore from snapshot
 
+# Health monitor
+python3 backup/monitor.py          # Check disk/mem/load
+
 # Server docs
 python3 deploy/docs_generator.py   # Generate SERVER.md
 
 # Deploy pipeline test (SSH orchestration with retry)
 sudo python3 deploy/tests/test_deploy.py
 ```
+
+> **Note:** `deploy/` directory and `requirements.txt` are **deleted** after first deploy.
+> To re-run deploy scripts, re-upload the project (tar + scp) or clone fresh.
+> Scripts in `cis/` and `backup/` are permanent and always available.
 
 ## 6. Key Info Reference
 
@@ -112,7 +117,6 @@ sudo python3 deploy/tests/test_deploy.py
 - `cloudru/s3/bucket`, `cloudru/s3/endpoint`
 - `yandex/disk/token`
 - `restic/password`
-- `github/token`
 
 **Server paths:**
 - Project: `~/` (разворачивается в home)
