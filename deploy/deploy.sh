@@ -8,9 +8,8 @@
 # Or from SSH:
 #   ssh user@host
 #   sudo apt update && sudo apt install -y git
-#   git clone https://github.com/mlenkov/cloud.ru-free-tier-vm.git
-#   cd cloud.ru-free-tier-vm/deploy
-#   sudo BW_ACCESS_TOKEN="xxx" bash deploy.sh
+#   git clone https://github.com/mlenkov/cloud.ru-free-tier-vm.git .
+#   sudo BW_ACCESS_TOKEN="xxx" bash deploy/deploy.sh
 
 set -euo pipefail
 export DEBIAN_FRONTEND=noninteractive
@@ -28,7 +27,7 @@ else
     ORIGINAL_HOME=$(eval echo "~$ORIGINAL_USER")
 fi
 
-PROJECT_DIR="$ORIGINAL_HOME/cloud.ru-free-tier-vm"
+PROJECT_DIR="$ORIGINAL_HOME"
 DOCS_DIR="$ORIGINAL_HOME/docs"
 
 echo "===== cloud.ru-free-tier-vm — Server Provisioning ====="
@@ -80,7 +79,7 @@ fi
 if [ -f .env ]; then
     set -a; source .env 2>/dev/null || true; set +a
 else
-    echo "⚠️  .env не найден. Backup будет работать только локально."
+    echo "⚠️  .env не найден. Backup будет работать только с облачными хранилищами."
     echo "   Создайте .env вручную (формат в README.md → Секреты):"
     echo "   cat > .env << 'EOF'"
     echo "   restic/password='мой_пароль'"

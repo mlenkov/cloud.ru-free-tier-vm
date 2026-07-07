@@ -274,7 +274,7 @@ secrets:
 # Скрипты автоматизации
 scripts:
   docs_generation:
-    - "scripts/docs_generator.py"
+    - "deploy/docs_generator.py"
 
 # Уведомления
 notifications:

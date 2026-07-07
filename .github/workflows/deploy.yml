@@ -79,7 +79,7 @@ jobs:
         run: python3 cis/check_compliance.py --threshold ${{ env.CIS_TARGET }}
 
   backup:
-    name: Create 3-2-1 Backup
+    name: Create 1-2-1 Backup
     needs: setup
     runs-on: ubuntu-latest
     steps:

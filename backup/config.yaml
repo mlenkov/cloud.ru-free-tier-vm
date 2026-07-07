@@ -1,9 +1,9 @@
-# Backup 3-2-1 Configuration
+# Backup 1-2-1 Configuration
 # Несекретные настройки — в этом файле.
 # Credentials (access_key, secret_key, token) — в BSM / .env.
 
 backup:
-  strategy: 3-2-1
+  strategy: 1-2-1
 
   # Что бекапим — добавляй новые сервисы сюда
   sources:
@@ -12,9 +12,6 @@ backup:
     - /var/www
     - /var/log
     - /root
-
-  # Локальное хранилище (restic)
-  local_path: /var/backups/cloud.ru-free-tier-vm
 
   # Расписание (cron)
   schedule: "0 2 * * *"
@@ -26,13 +23,13 @@ backup:
     keep_monthly: 3
     keep_yearly: 1
 
-  # cloud.ru S3 Object Storage
+  # Copy 1: cloud.ru S3 Object Storage
   s3:
     bucket: ""                    # имя бакета
     endpoint: ""                  # URL endpoint (без https://)
     prefix: ""                    # префикс ключей внутри бакета (опционально)
     region: ru-central-1
 
-  # Yandex Disk
+  # Copy 2: Yandex Disk (offsite)
   yandex_disk:
     path: /backups/cloud.ru-free-tier-vm   # удалённый путь

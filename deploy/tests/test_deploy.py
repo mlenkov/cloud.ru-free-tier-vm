@@ -81,7 +81,7 @@ class SSHClient:
                        "-o", "ServerAliveInterval=30",
                        "-i", conn["key"],
                        f"{conn['user']}@{conn['ip']}"]
-        self.remote_dir = self._resolve_home() + "/cloud.ru-free-tier-vm"
+        self.remote_dir = self._resolve_home()
 
     def _resolve_home(self) -> str:
         rc, out, _ = self.run(f"eval echo ~{self.conn['user']}", sudo=False, timeout=10)

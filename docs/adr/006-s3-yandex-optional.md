@@ -7,7 +7,7 @@ Accepted
 Не у всех пользователей есть cloud.ru S3 Object Storage или Yandex Disk.
 Деплой не должен фейлиться из-за отсутствия внешних хранилищ.
 
-В то же время, для production-сервера 3-2-1 — обязательный стандарт, и внешние
+В то же время, для production-сервера 1-2-1 — обязательный стандарт, и внешние
 хранилища должны автоматически подключаться как только credentials появятся.
 
 ## Решение
@@ -18,15 +18,14 @@ Accepted
    - Yandex Disk: `if ya_token:` — иначе `⏭️ Yandex Disk token не задан, пропускаю`
    - Yandex Disk без rclone: `if not _check_rclone(): ⏭️ rclone не установлен`
 
-2. **Zero-config local** — локальный backup работает без каких-либо env-переменных:
-   - `restic/password` обязателен (иначе backup не имеет смысла)
-   - При отсутствии — ошибка `❌ RESTIC_PASSWORD не задан`
-   - `scripts/backup.py status` показывает статус каждого хранилища: `S3: настроен / не настроен`
+ 2. **Zero-config S3 + Yandex** — оба работают при наличии credentials в BSM / .env:
+    - `restic/password` обязателен (иначе backup не имеет смысла)
+    - При отсутствии — ошибка `❌ RESTIC_PASSWORD не задан`
+    - `backup/backup.py status` показывает статус каждого хранилища: `S3: настроен / не настроен`
 
 Поток:
 ```
 backup.py create
-  ├─ Local — всегда (если restic/password есть)
   ├─ S3 — только если cloudru/s3/access-key + cloudru/s3/secret-key
   └─ Yandex Disk — только если yandex/disk/token + rclone установлен
 ```
@@ -38,7 +37,7 @@ backup.py create
 - **Soft-fail (continue on error)**: логи ошибок, но backup считается успешным — вводит в заблуждение
 
 ## Последствия
-- Local backup = zero-config, всегда работает
+- S3 + Yandex = zero-config при наличии credentials
 - S3/Yandex auto-enable — достаточно добавить ключи в BSM / .env
 - `backup.py status` — прозрачный статус: `S3: настроен` / `не настроен`
 - `deploy.sh` не зависит от внешних хранилищ — `|| true` на все backup-команды

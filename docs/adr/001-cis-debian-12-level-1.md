@@ -12,8 +12,8 @@ CIS (Center for Internet Security) — де-факто стандарт для h
 Выбран профиль **CIS Debian 12 Level 1 v1.1.0** (59 checks, 16 категорий).
 
 Профиль реализован через:
-- `config/cis_standard.yaml` — декларативное описание 59 проверок с fix-командами
-- `cis_manager.py` — audit, fix, history, rollback, с подсчётом compliance (target 95%)
+- `cis/standard.yaml` — декларативное описание 59 проверок с fix-командами
+- `cis/manager.py` — audit, fix, history, rollback, с подсчётом compliance (target 95%)
 - Конвейер в `deploy.sh`: audit → fix → audit → check_compliance
 
 Проверки охватывают: целостность (AIDE), core dumps, ASLR, fs layout, sudo, PAM, SSH,

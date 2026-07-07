@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Backup 3-2-1 Manager — restic + cloud.ru S3 + Yandex Disk
+Backup 1-2-1 Manager — restic + cloud.ru S3 + Yandex Disk
 AI Employee: автоматическое резервное копирование VPS
 """
 
@@ -20,7 +20,7 @@ CONFIG_PATH = Path("backup/config.yaml")
 def _load_config() -> dict:
     if not CONFIG_PATH.exists():
         print(f"❌ Конфиг не найден: {CONFIG_PATH}")
-        print("   Запустите: python3 scripts/backup.py setup")
+        print("   Запустите: python3 backup/backup.py setup")
         sys.exit(1)
 
     try:
@@ -95,7 +95,6 @@ def cmd_create(args):
 
     env = _load_env()
     backup_cfg = config.get("backup", {})
-    local_path = backup_cfg.get("local_path", "/var/backups/cloud.ru-free-tier-vm")
     sources = backup_cfg.get("sources", ["/etc", "/home", "/var/www"])
     restic_pass = env.get("restic/password") or os.environ.get("RESTIC_PASSWORD")
 
@@ -104,27 +103,11 @@ def cmd_create(args):
         sys.exit(1)
 
     timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
-    print(f"💾 Backup 3-2-1 — {timestamp}")
+    print(f"💾 Backup 1-2-1 — {timestamp}")
     print("=" * 60)
 
-    # --- Copy 1: Local backup ---
-    print(f"\n📀 Copy 1: Local -> {local_path}")
-    local_repo = f"local:{local_path}"
-    restic_env = {"RESTIC_REPOSITORY": local_repo, "RESTIC_PASSWORD": restic_pass}
-
-    rc = _run(["restic", "snapshots"], env=restic_env, timeout=30).returncode
-    if rc != 0:
-        print("   ⚠️  Инициализация локального репозитория...")
-        _run(["restic", "init"], env=restic_env)
-
-    result = _run(["restic", "backup"] + sources, env=restic_env)
-    if result.returncode == 0:
-        print(f"   ✅ Локальный backup завершён")
-    else:
-        print(f"   ❌ Ошибка: {result.stderr.strip()[-200:]}")
-
-    # --- Copy 2: cloud.ru S3 ---
-    print(f"\n☁️  Copy 2: cloud.ru S3")
+    # --- Copy 1: cloud.ru S3 ---
+    print(f"\n☁️  Copy 1: cloud.ru S3")
     s3_key = env.get("cloudru/s3/access-key") or os.environ.get("AWS_ACCESS_KEY_ID")
     s3_secret = env.get("cloudru/s3/secret-key") or os.environ.get("AWS_SECRET_ACCESS_KEY")
     s3_cfg = backup_cfg.get("s3", {})
@@ -161,8 +144,8 @@ def cmd_create(args):
     else:
         print("   ⏭️  S3 credentials не заданы, пропускаю")
 
-    # --- Copy 3: Yandex Disk (offsite) ---
-    print(f"\n🌐  Copy 3: Yandex Disk (offsite)")
+    # --- Copy 2: Yandex Disk (offsite) ---
+    print(f"\n🌐  Copy 2: Yandex Disk (offsite)")
     ya_token = env.get("yandex/disk/token") or os.environ.get("YA_DISK_TOKEN")
     ya_path = backup_cfg.get("yandex_disk", {}).get("path") or env.get("yandex/disk/path") or "/backups/cloud.ru-free-tier-vm"
     yadisk_env = None
@@ -175,7 +158,7 @@ def cmd_create(args):
     # Prune old snapshots (retention) — все репозитории
     retention = backup_cfg.get("retention", {})
     if retention:
-        repos_for_prune = [("local", restic_env)]
+        repos_for_prune = []
         if s3_key and s3_secret:
             repos_for_prune.append(("s3", s3_env))
         if yadisk_env:
@@ -196,7 +179,7 @@ def cmd_create(args):
     if yadisk_env and "RCLONE_CONFIG" in yadisk_env:
         Path(yadisk_env["RCLONE_CONFIG"]).unlink(missing_ok=True)
 
-    print(f"\n✅ Backup 3-2-1 завершён: {timestamp}")
+    print(f"\n✅ Backup 1-2-1 завершён: {timestamp}")
 
 
 def _yadisk_backup(sources: list, restic_pass: str, token: str, remote_path: str) -> Optional[dict]:
@@ -236,18 +219,11 @@ def cmd_list(args):
 
     env = _load_env()
     backup_cfg = config.get("backup", {})
-    local_path = backup_cfg.get("local_path", "/var/backups/cloud.ru-free-tier-vm")
     restic_pass = env.get("restic/password") or os.environ.get("RESTIC_PASSWORD")
 
     if not restic_pass:
         print("❌ RESTIC_PASSWORD не задан")
         sys.exit(1)
-
-    for repo_name, repo_url in [("Local", f"local:{local_path}")]:
-        env_vars = {"RESTIC_REPOSITORY": repo_url, "RESTIC_PASSWORD": restic_pass}
-        result = _run(["restic", "snapshots"], env=env_vars)
-        print(f"\n📀 {repo_name}:")
-        print(result.stdout if result.returncode == 0 else "   (пусто)")
 
     s3_key = env.get("cloudru/s3/access-key") or os.environ.get("AWS_ACCESS_KEY_ID")
     s3_secret = env.get("cloudru/s3/secret-key") or os.environ.get("AWS_SECRET_ACCESS_KEY")
@@ -302,7 +278,7 @@ def cmd_restore(args):
         sys.exit(1)
 
     target = args.target or "/"
-    source = args.source or "local"
+    source = args.source or "s3"
     backup_cfg = config.get("backup", {})
 
     if source == "s3":
@@ -338,9 +314,8 @@ def cmd_restore(args):
             "PATH": os.environ.get("PATH", "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"),
         }
     else:
-        local_path = backup_cfg.get("local_path", "/var/backups/cloud.ru-free-tier-vm")
-        repo = f"local:{local_path}"
-        restic_env = {"RESTIC_REPOSITORY": repo, "RESTIC_PASSWORD": restic_pass}
+        print(f"❌ Неподдерживаемый источник: {source}. Используйте: s3, yadisk")
+        sys.exit(1)
 
     snapshot_id = args.snapshot
     if not snapshot_id:
@@ -368,21 +343,13 @@ def cmd_restore(args):
 def cmd_status(args):
     config = _load_config()
     backup_cfg = config.get("backup", {})
-    local_path = backup_cfg.get("local_path", "/var/backups/cloud.ru-free-tier-vm")
     schedule = backup_cfg.get("schedule", "not configured")
 
-    print(f"\n📊 Backup 3-2-1 Status")
+    print(f"\n📊 Backup 1-2-1 Status")
     print("=" * 60)
-    print(f"📀 Локальный путь: {local_path}")
     print(f"⏰ Расписание: {schedule}")
-    print(f"📁 Размер: {_get_size(local_path)}")
-
-    if Path(local_path).exists():
-        result = _run(["restic", "-r", f"local:{local_path}", "stats"], timeout=30)
-        if result.returncode == 0:
-            print(f"📦 Snapshot-ы: {result.stdout.strip()[:100]}")
-
-    print()
+    print(f"☁️  S3: {'настроен' if backup_cfg.get('s3', {}).get('bucket') else 'не настроен'}")
+    print(f"🌐 Yandex Disk: {'настроен' if backup_cfg.get('yandex_disk', {}).get('path') else 'не настроен'}")
 
     # Check cron/systemd timer
     cron = _run(["sudo", "crontab", "-l"], timeout=10)
@@ -400,34 +367,15 @@ def cmd_status(args):
         print("   Запустите: python3 backup/backup.py setup")
 
 
-def _get_size(path: str) -> str:
-    try:
-        result = _run(["du", "-sh", path], timeout=10)
-        return result.stdout.split()[0] if result.stdout.strip() else "0B"
-    except Exception:
-        return "unknown"
-
-
 def cmd_setup(args):
     config = _load_config()
     backup_cfg = config.get("backup", {})
-    local_path = backup_cfg.get("local_path", "/var/backups/cloud.ru-free-tier-vm")
     schedule = backup_cfg.get("schedule", "0 2 * * *")
 
-    print("🔧 Настройка backup 3-2-1...")
+    print("🔧 Настройка backup 1-2-1...")
 
-    Path(local_path).mkdir(parents=True, exist_ok=True)
-
-    # Init local restic repo
     env = _load_env()
     restic_pass = env.get("restic/password") or os.environ.get("RESTIC_PASSWORD")
-    if restic_pass:
-        restic_env = {"RESTIC_REPOSITORY": f"local:{local_path}", "RESTIC_PASSWORD": restic_pass}
-        rc = _run(["restic", "snapshots"], env=restic_env, timeout=30).returncode
-        if rc != 0:
-            print("⚡ Инициализация restic репозитория...")
-            _run(["restic", "init"], env=restic_env)
-        print("✅ Локальный restic репозиторий готов")
 
     # Init Yandex Disk restic repo
     ya_token = env.get("yandex/disk/token") or os.environ.get("YA_DISK_TOKEN")
@@ -464,7 +412,6 @@ def cmd_setup(args):
         print("✅ Cron уже настроен")
 
     print(f"\n✅ Backup система готова")
-    print(f"   📀 Локальный путь: {local_path}")
     print(f"   ☁️  S3: {'настроен' if env.get('cloudru/s3/access-key') else 'не настроен'}")
     print(f"   🌐 Yandex Disk: {'настроен' if ya_token else 'не настроен'}")
     print(f"   ⏰ Расписание: {schedule}")
@@ -474,21 +421,20 @@ def cmd_setup(args):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Backup 3-2-1 Manager — restic + cloud.ru S3 + Yandex Disk",
+        description="Backup 1-2-1 Manager — restic + cloud.ru S3 + Yandex Disk",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Примеры:
-  %(prog)s create                          # Создать backup (3 копии)
+  %(prog)s create                          # Создать backup (2 копии)
   %(prog)s list                            # Список snapshot-ов
   %(prog)s restore --snapshot abc123       # Восстановить из snapshot
   %(prog)s restore --source s3             # Восстановить из S3
   %(prog)s setup                           # Настроить backup систему
   %(prog)s status                          # Статус backup системы
 
-Backup 3-2-1 стратегия:
-   1. Локальный backup (restic в /var/backups)
-   2. cloud.ru S3 Object Storage (restic + AES-256)
-   3. Yandex Disk (offsite, restic + rclone)
+Backup 1-2-1 стратегия:
+   1. cloud.ru S3 Object Storage (restic + AES-256)
+   2. Yandex Disk (offsite, restic + rclone)
 
 Зависимости: restic, rclone
 
@@ -505,14 +451,14 @@ Backup 3-2-1 стратегия:
 
     subparsers = parser.add_subparsers(dest="command", help="Команды")
 
-    create_parser = subparsers.add_parser("create", help="Создать backup 3-2-1")
+    create_parser = subparsers.add_parser("create", help="Создать backup 1-2-1")
 
     list_parser = subparsers.add_parser("list", help="Список snapshot-ов")
 
     restore_parser = subparsers.add_parser("restore", help="Восстановить из backup")
     restore_parser.add_argument("--snapshot", help="ID snapshot (по умолч. последний)")
     restore_parser.add_argument("--target", default="/", help="Целевая директория (по умолч. /)")
-    restore_parser.add_argument("--source", choices=["local", "s3", "yadisk"], default="local",
+    restore_parser.add_argument("--source", choices=["s3", "yadisk"], default="s3",
                                 help="Источник для восстановления")
 
     setup_parser = subparsers.add_parser("setup", help="Настроить backup систему")

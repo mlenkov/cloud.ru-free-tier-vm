@@ -13,7 +13,7 @@
 │  ┌──────────┐  ┌────────────┐  ┌───────────┐           │
 │  │ deploy   │  │ CIS        │  │ Backup    │           │
 │  │ .sh      │  │ Manager    │  │ (restic)  │           │
-│  │ (bash)   │──▶ (Python)   │──▶ 3-2-1     │           │
+│  │ (bash)   │──▶ (Python)   │──▶ 1-2-1     │           │
 │  └──────────┘  └─────┬──────┘  └───────────┘           │
 │                      │                                  │
 │                      ▼                                  │
@@ -33,7 +33,7 @@
 | Entry point | `deploy/deploy.sh` | оркестратор, после deploy самоудаляется |
 | CIS аудит | `cis/manager.py` | 59 проверок, audit + fix |
 | Секреты | `deploy/secrets.py` | sync из BSM в `.env` (root:root 600) |
-| Backup | `backup/backup.py` | restic: local + S3 + Yandex Disk |
+| Backup | `backup/backup.py` | restic: S3 + Yandex Disk |
 | Документация | `deploy/docs_generator.py` | server.md → `docs/SERVER.md` |
 | CI/CD | `.github/workflows/deploy.yml` | GitHub Actions pipeline |
 | Config | `backup/config.yaml` | настройки backup (без хардкодов) |
@@ -99,9 +99,9 @@ python3 backup/backup.py create
 # Статус
 python3 backup/backup.py status
 
-# Восстановление (список snapshot-ов)
-restic -r /var/backups/cloud.ru-free-tier-vm snapshots
-restic -r /var/backups/cloud.ru-free-tier-vm restore latest --target /
+# Восстановление (из S3 или Yandex Disk)
+python3 backup/backup.py restore --source s3
+python3 backup/backup.py restore --source yadisk
 ```
 
 Backup автоматически запускается по cron в 2:00 ежедневно.

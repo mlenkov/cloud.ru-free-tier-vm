@@ -44,7 +44,7 @@ This server is managed by **AI Employee** using GitHub Actions CI/CD.
 
 ### Pipeline Stages
 
-1. **Setup** - Automatically applies CIS standards + backup 3-2-1
+1. **Setup** - Automatically applies CIS standards + backup 1-2-1
 2. **Verify** - Runs CIS audit on each commit
 3. **Docs** - Auto-generates documentation
 
@@ -67,18 +67,22 @@ All secrets are securely stored in **Bitwarden Secrets Manager**.
 ## 📁 Project Structure
 
 ```
-cloud.ru-free-tier-vm/
-├── deploy.sh               # One-command installer
-├── cis_manager.py          # CIS audit and fix tool
-├── config/
-│   ├── cis_standard.yaml   # CIS configuration
-│   ├── backup.yaml         # 3-2-1 backup config
-│   └── templates/          # README template
-├── scripts/
-│   ├── backup.py           # 3-2-1 backup manager
+├── deploy/                 # Provisioning (removed after deploy)
+│   ├── deploy.sh           # Orchestrator
 │   ├── secrets.py          # Bitwarden sync
-│   ├── docs_generator.py   # README generator
-│   └── check_compliance.py # Compliance validator
+│   ├── docs_generator.py   # SERVER.md generator
+│   └── templates/
+│       └── server.md       # Documentation template
+├── cis/                    # Security (persistent)
+│   ├── manager.py          # CIS audit + fix
+│   ├── standard.yaml       # 59 CIS checks
+│   └── check_compliance.py # Compliance score
+├── backup/                 # Backup (persistent)
+│   ├── backup.py           # 1-2-1 backup manager
+│   └── config.yaml         # Backup config
+├── docs/
+│   └── SERVER.md           # Auto-generated documentation
+├── AGENTS.md               # AI Employee instructions
 └── README.md               # This file
 ```
 
@@ -104,11 +108,11 @@ python3 cis_manager.py fix --force
 # View audit history
 python3 cis_manager.py history
 
-# Create 3-2-1 backup
-python3 scripts/backup.py create
+# Create 1-2-1 backup
+python3 backup/backup.py create
 
 # Generate documentation
-python3 scripts/docs_generator.py
+python3 deploy/docs_generator.py
 ```
 
 ## 📞 Support
