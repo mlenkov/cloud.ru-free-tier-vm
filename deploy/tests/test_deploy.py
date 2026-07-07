@@ -82,11 +82,18 @@ class SSHClient:
                        "-o", "ServerAliveInterval=30",
                        "-i", str(key),
                        f"{conn['user']}@{conn['ip']}"]
-        self.remote_dir = self._resolve_home()
+        self.remote_dir = f"/home/{conn['user']}"
+        resolved = self._resolve_home()
+        if resolved:
+            self.remote_dir = resolved
 
     def _resolve_home(self) -> str:
-        rc, out, _ = self.run(f"eval echo ~{self.conn['user']}", sudo=False, timeout=10)
-        return out.strip() if rc == 0 else f"/home/{self.conn['user']}"
+        cmd = self.prefix + [f"eval echo ~{self.conn['user']}"]
+        try:
+            r = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+            return r.stdout.strip() if r.returncode == 0 else ""
+        except Exception:
+            return ""
 
     def run(self, cmd: str, timeout: int = 60, sudo: bool = False) -> tuple:
         s = "sudo " if sudo else ""
@@ -119,12 +126,13 @@ class SSHClient:
             subprocess.run(
                 ["tar", "-czf", tmp_tar, "-C", str(PROJECT_DIR),
                  "--exclude=.git", "--exclude=__pycache__", "--exclude=*.pyc",
-                 "--exclude=.test_snapshot", "--exclude=deploy/tests", "."],
+                 "--exclude=.test_snapshot", "--exclude=deploy/tests",
+                 "--exclude=.opencode", "--exclude=node_modules", "."],
                 capture_output=True, text=True, timeout=30, check=True)
             self.run(f"mkdir -p {self.remote_dir}", timeout=10)
             self.put_file(Path(tmp_tar), remote_tar)
             rc, out, err = self.run(
-                f"tar -xzf {remote_tar} -C {self.remote_dir} "
+                f"tar -xzf {remote_tar} -C {self.remote_dir} --overwrite "
                 f"&& rm {remote_tar}", timeout=30)
             if rc != 0:
                 print(f"  extract failed: {err}")
@@ -195,11 +203,11 @@ class SystemSnapshot:
         return {"passed": 0, "failed": 0, "errors": 0, "compliance_score": 0}
 
 
-    def run_deploy(ssh: SSHClient, token: str = "") -> tuple:
-        _info("Running deploy...")
-        env_var = f"BW_ACCESS_TOKEN={token}" if token else ""
-        cmd = f"env {env_var} bash deploy/deploy.sh"
-        rc, out, err = ssh.run(cmd, timeout=600, sudo=True)
+def run_deploy(ssh: SSHClient, token: str = "") -> tuple:
+    _info("Running deploy...")
+    env_var = f"BW_ACCESS_TOKEN={token}" if token else ""
+    cmd = f"env {env_var} bash deploy/deploy.sh"
+    rc, out, err = ssh.run(cmd, timeout=600, sudo=True)
     if rc != 0:
         print(f"  deploy exit code: {rc}")
         if err:
