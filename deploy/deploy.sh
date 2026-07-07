@@ -43,7 +43,7 @@ apt-get install -y -qq \
   -o Dpkg::Options::="--force-confdef" \
   -o Dpkg::Options::="--force-confold" \
   git python3 python3-pip python3-venv restic rclone curl \
-  aide fail2ban chrony needrestart unattended-upgrades
+  aide chrony needrestart unattended-upgrades nftables
 
 # AIDE DB initialization (background, ~2 min on 2 vCPU)
 if [ ! -f /var/lib/aide/aide.db ]; then
@@ -89,24 +89,23 @@ fi
 python3 cis/manager.py audit --format json
 python3 cis/manager.py fix --force
 
-# Ensure fail2ban is running before final audit
-cat > /etc/fail2ban/jail.local << 'EOF'
-[DEFAULT]
-bantime = 3600
-findtime = 600
-maxretry = 3
-
-[sshd]
-enabled = true
-backend = systemd
-maxretry = 3
+# nftables: default-deny firewall (SSH only)
+cat > /etc/nftables.conf << 'EOF'
+#!/usr/sbin/nft -f
+flush ruleset
+table inet filter {
+  chain input { type filter hook input priority 0; policy drop;
+    ct state established,related accept
+    iif lo accept
+    tcp dport 22 accept
+    icmp type { echo-request, echo-reply } accept
+  }
+  chain forward { type filter hook forward priority 0; policy drop; }
+  chain output { type filter hook output priority 0; policy accept; }
+}
 EOF
-systemctl enable --now fail2ban 2>&1 || true
-sleep 2
-if ! systemctl is-active --quiet fail2ban; then
-    echo "⚠️  fail2ban не стартует, ошибка:"
-    sudo journalctl -u fail2ban -n 5 --no-pager 2>/dev/null || true
-fi
+systemctl enable --now nftables 2>&1 || true
+nft -f /etc/nftables.conf 2>&1 || true
 
 python3 cis/manager.py audit --format json
 
@@ -123,6 +122,19 @@ cp docs/SERVER.md "$DOCS_DIR/" 2>/dev/null || true
 # Cleanup deploy artifacts (one-shot, not needed on running server)
 rm -rf "$PROJECT_DIR/deploy" "$PROJECT_DIR/.gitignore"
 rm -rf "$PROJECT_DIR/.git" "$PROJECT_DIR/.github" "$PROJECT_DIR/requirements.txt"
+
+# AIDE: daily check — избыточно для редких изменений конфигов
+systemctl disable --now dailyaidecheck.timer 2>/dev/null || true
+
+# Удаление пакетов разработки (не нужны на production)
+apt-get remove -y --purge --auto-remove \
+  build-essential gcc g++ python3-dev \
+  python3-pip python3-setuptools python3-wheel 2>/dev/null || true
+
+# Мониторинг здоровья (диск, память, load)
+(crontab -l 2>/dev/null || true
+ echo "0 8 * * * cd $PROJECT_DIR && python3 backup/monitor.py >> /var/log/monitor.log 2>&1"
+) | crontab -
 
 chown -R "$ORIGINAL_USER:$ORIGINAL_USER" "$PROJECT_DIR"
 

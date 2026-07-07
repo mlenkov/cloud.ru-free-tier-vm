@@ -223,6 +223,25 @@ backup:
     path: /backups/cloud.ru-free-tier-vm
 ```
 
+### 💡 Замечания по CIS Benchmark
+
+> [!NOTE]
+> **Автоматический деплой (`deploy.sh`) не применяет checks 8.1–8.3 (Fail2ban).**
+>
+> На сервере используется key-only SSH (пароль отключён) и nftables с default-deny политикой
+> (входящие: только SSH + established connections). При таких настройках fail2ban избыточен:
+> брутфорс невозможен (нет пароля), а nftables блокирует на уровне ядра без лишнего потребления RAM.
+>
+> Все 59 проверок CIS остаются в `cis/standard.yaml`. Для полного аудита:
+> ```bash
+> python3 cis/manager.py audit
+> ```
+> Если fail2ban всё же нужен — доставьте вручную:
+> ```bash
+> apt install fail2ban && systemctl enable --now fail2ban
+> python3 cis/manager.py fix --force  # применит оставшиеся checks
+> ```
+
 **💡 Оптимизация для free-tier (15 ГБ S3):**
 - Установите `keep_daily: 3` вместо 7 для экономии места
 - Исключите большие директории из `sources` (например, `/var/log` можно бэкапить отдельно)
