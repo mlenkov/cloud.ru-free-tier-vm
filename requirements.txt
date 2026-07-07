@@ -5,7 +5,9 @@
 pyyaml>=6.0
 
 # Bitwarden Secrets Manager SDK (чтение секретов, расшифровка)
-bws-sdk>=1.0.0
+# Опционально: не нужно, если вы создаёте .env вручную (см. README.md)
+# Установка: pip install bws-sdk
+#bws-sdk>=1.0.0
 
 # REST API (backup.py, secrets.py)
 requests>=2.31.0

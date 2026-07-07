@@ -18,7 +18,7 @@ Ask for these in order. Do NOT proceed until each is confirmed.
 | What | Example | Stored in |
 |------|---------|-----------|
 | **IP address** | `91.224.87.211` | `docs/connection.md` |
-| **BW_ACCESS_TOKEN** | `bws_token_xxx` | env var only, never on disk |
+| **BW_ACCESS_TOKEN** (optional) | `bws_token_xxx` | env var only, never on disk. If user has no BSM, skip — deploy will work with local backup only |
 | **SSH key path** | `~/.ssh/MacBuka` | `docs/connection.md` |
 | **SSH user** | `mais` | `docs/connection.md` |
 

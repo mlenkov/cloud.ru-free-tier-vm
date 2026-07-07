@@ -74,11 +74,17 @@ if [ -z "${BW_ACCESS_TOKEN:-}" ]; then
 fi
 
 if [ -n "${BW_ACCESS_TOKEN:-}" ]; then
-    python3 scripts/secrets.py sync
+    python3 scripts/secrets.py sync || echo "⚠️  BSM sync не удался, продолжаю..."
 fi
 
 if [ -f .env ]; then
-    set -a; source .env 2>/dev/null; set +a
+    set -a; source .env 2>/dev/null || true; set +a
+else
+    echo "⚠️  .env не найден. Backup будет работать только локально."
+    echo "   Создайте .env вручную (формат в README.md → Секреты):"
+    echo "   cat > .env << 'EOF'"
+    echo "   restic/password='мой_пароль'"
+    echo "   EOF"
 fi
 
 python3 cis_manager.py audit --format json

@@ -16,12 +16,19 @@ def _get_token() -> str:
     if not token:
         print("❌ BW_ACCESS_TOKEN не задан")
         print("   Получите токен в Bitwarden Secrets Manager: Settings → Access Tokens")
+        print("   Или создайте .env вручную (см. README.md → Секреты)")
         sys.exit(1)
     return token
 
 
 def _create_client():
-    from bws_sdk import BWSecretClient, Region
+    try:
+        from bws_sdk import BWSecretClient, Region
+    except ImportError:
+        print("❌ bws-sdk не установлен")
+        print("   Установите: pip install bws-sdk")
+        print("   Или создайте .env вручную (см. README.md → Секреты)")
+        sys.exit(1)
     token = _get_token()
     region = Region(
         api_url=os.environ.get("BW_API_URL", "https://api.bitwarden.com"),
@@ -31,6 +38,17 @@ def _create_client():
 
 
 def cmd_sync(args):
+    output_path = Path(args.output) if args.output else Path(".env")
+
+    # 1. Read existing .env as base (если есть)
+    existing = {}
+    if output_path.exists():
+        for line in output_path.read_text().strip().split("\n"):
+            if "=" in line:
+                k, v = line.split("=", 1)
+                existing[k.strip()] = v.strip().strip("'\"")
+
+    # 2. BSM override + merge
     client = _create_client()
     print(f"🔑 Организация: {client.auth.org_id}")
 
@@ -38,25 +56,31 @@ def cmd_sync(args):
     result = client.sync(last_synced_date=old_date)
     secrets = result if isinstance(result, list) else result.secrets
 
-    if not secrets:
-        print("⚠️  Секреты не найдены")
+    merged = dict(existing)
+    if secrets:
+        print(f"📦 Найдено секретов BSM: {len(secrets)}")
+        for s in secrets:
+            merged[s.key] = s.value
+            print(f"  ✅ {s.key}")
+
+    if existing and secrets:
+        overlap = set(existing.keys()) & set(s.key for s in secrets)
+        if overlap:
+            print(f"  🔄 BSM перезаписал: {', '.join(overlap)}")
+        print(f"  💾 Сохранено из .env (нет в BSM): {len(set(existing.keys()) - set(s.key for s in secrets))}")
+
+    if not merged:
+        print("⚠️  Секреты не найдены (ни BSM, ни .env)")
         return
 
-    print(f"📦 Найдено секретов: {len(secrets)}")
-
-    env_data = {}
-    for s in secrets:
-        env_data[s.key] = s.value
-        print(f"  ✅ {s.key}")
-
-    output_path = Path(args.output) if args.output else Path(".env")
+    # 3. Write merged
     lines = []
-    for k, v in env_data.items():
+    for k, v in merged.items():
         escaped = v.replace("'", "'\\''")
         lines.append(f"{k}='{escaped}'")
     output_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
     output_path.chmod(0o600)
-    print(f"\n✅ Секреты сохранены в {output_path} (chmod 600)")
+    print(f"\n✅ Секреты сохранены в {output_path} (chmod 600, {len(merged)} ключей)")
 
 
 def cmd_get(args):
