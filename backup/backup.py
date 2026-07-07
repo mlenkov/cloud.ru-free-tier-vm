@@ -14,7 +14,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
-CONFIG_PATH = Path("config/backup.yaml")
+CONFIG_PATH = Path("backup/config.yaml")
 
 
 def _load_config() -> dict:
@@ -397,7 +397,7 @@ def cmd_status(args):
             print("✅ Systemd timer: настроен")
         else:
             print("⚠️  Backup не настроен в cron/systemd")
-            print("   Запустите: python3 scripts/backup.py setup")
+        print("   Запустите: python3 backup/backup.py setup")
 
 
 def _get_size(path: str) -> str:
@@ -449,7 +449,7 @@ def cmd_setup(args):
 
     # Setup cron
     import tempfile
-    cron_line = f"{schedule} cd {os.getcwd()} && python3 scripts/backup.py create >> /var/log/backup.log 2>&1"
+    cron_line = f"{schedule} cd {os.getcwd()} && python3 backup/backup.py create >> /var/log/backup.log 2>&1"
     existing = _run(["crontab", "-l"], timeout=10).stdout
 
     if cron_line not in existing:
@@ -469,7 +469,7 @@ def cmd_setup(args):
     print(f"   🌐 Yandex Disk: {'настроен' if ya_token else 'не настроен'}")
     print(f"   ⏰ Расписание: {schedule}")
     print(f"\n   Создайте первый backup:")
-    print(f"   python3 scripts/backup.py create")
+    print(f"   python3 backup/backup.py create")
 
 
 def main():

@@ -71,7 +71,7 @@ def get_system_info() -> dict:
 
 
 def load_audit_data() -> dict:
-    audit_file = Path("cis_data/current_audit.json")
+    audit_file = Path("cis/data/current_audit.json")
     if audit_file.exists():
         with open(audit_file, 'r', encoding='utf-8') as f:
             return json.load(f)
@@ -135,7 +135,7 @@ def build_security_summary(checks: list) -> str:
 
 
 def build_compliance_history() -> str:
-    history_dir = Path("cis_data/history")
+    history_dir = Path("cis/data/history")
     if not history_dir.exists():
         return "| Нет истории | | | |"
 
@@ -167,7 +167,7 @@ def get_installed_info() -> dict:
 
 
 def generate_readme(audit_data: dict, system_info: dict) -> str:
-    template_path = Path("config/templates/server.md")
+    template_path = Path("deploy/templates/server.md")
     if not template_path.exists():
         print(f"❌ Шаблон не найден: {template_path}")
         sys.exit(1)

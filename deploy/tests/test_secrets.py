@@ -1,13 +1,13 @@
-"""Unit tests for scripts/secrets.py merge logic."""
+"""Unit tests for deploy/secrets.py merge logic."""
 
 import sys
 import tempfile
 import unittest
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
-from scripts.secrets import _merge_env, _parse_env, _format_env
+from deploy.secrets import _merge_env, _parse_env, _format_env
 
 
 class FakeSecret:

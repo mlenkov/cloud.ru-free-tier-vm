@@ -2,7 +2,7 @@
 .env
 
 # CIS audit data
-cis_data/
+cis/data/
 
 # Python
 __pycache__/

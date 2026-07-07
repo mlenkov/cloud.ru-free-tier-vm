@@ -76,7 +76,7 @@ class AuditReport:
 class CISManager:
     """Менеджер для CIS Debian 12 аудита и исправлений"""
     
-    def __init__(self, data_dir: str = "./cis_data", log_level: str = "INFO"):
+    def __init__(self, data_dir: str = "./cis/data", log_level: str = "INFO"):
         self.data_dir = Path(data_dir)
         self.data_dir.mkdir(exist_ok=True)
         self.history_dir = self.data_dir / "history"
@@ -96,7 +96,7 @@ class CISManager:
     
     def _init_checks(self):
         """Инициализация реестра проверок из YAML или хардкода"""
-        yaml_path = Path("config/cis_standard.yaml")
+        yaml_path = Path("cis/standard.yaml")
 
         self.checks = self._load_checks_from_yaml(yaml_path) or self._default_checks()
 

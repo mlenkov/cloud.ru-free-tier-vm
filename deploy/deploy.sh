@@ -3,13 +3,13 @@
 # Repo: https://github.com/mlenkov/cloud.ru-free-tier-vm
 #
 # Usage:
-#   sudo BW_ACCESS_TOKEN="xxx" bash deploy.sh
+#   sudo BW_ACCESS_TOKEN="xxx" bash deploy/deploy.sh
 #
 # Or from SSH:
 #   ssh user@host
 #   sudo apt update && sudo apt install -y git
 #   git clone https://github.com/mlenkov/cloud.ru-free-tier-vm.git
-#   cd cloud.ru-free-tier-vm
+#   cd cloud.ru-free-tier-vm/deploy
 #   sudo BW_ACCESS_TOKEN="xxx" bash deploy.sh
 
 set -euo pipefail
@@ -74,7 +74,7 @@ if [ -z "${BW_ACCESS_TOKEN:-}" ]; then
 fi
 
 if [ -n "${BW_ACCESS_TOKEN:-}" ]; then
-    python3 scripts/secrets.py sync || echo "⚠️  BSM sync не удался, продолжаю..."
+    python3 deploy/secrets.py sync || echo "⚠️  BSM sync не удался, продолжаю..."
 fi
 
 if [ -f .env ]; then
@@ -87,8 +87,8 @@ else
     echo "   EOF"
 fi
 
-python3 cis_manager.py audit --format json
-python3 cis_manager.py fix --force
+python3 cis/manager.py audit --format json
+python3 cis/manager.py fix --force
 
 # Ensure fail2ban is running before final audit
 cat > /etc/fail2ban/jail.local << 'EOF'
@@ -109,17 +109,21 @@ if ! systemctl is-active --quiet fail2ban; then
     sudo journalctl -u fail2ban -n 5 --no-pager 2>/dev/null || true
 fi
 
-python3 cis_manager.py audit --format json
+python3 cis/manager.py audit --format json
 
 # Don't exit on compliance fail — let backup + docs run
-python3 scripts/check_compliance.py --threshold 95 || true
+python3 cis/check_compliance.py --threshold 95 || true
 
-python3 scripts/backup.py setup 2>/dev/null || true
-python3 scripts/backup.py create 2>/dev/null || true
-python3 scripts/docs_generator.py
+python3 backup/backup.py setup 2>/dev/null || true
+python3 backup/backup.py create 2>/dev/null || true
+python3 deploy/docs_generator.py
 
 mkdir -p "$DOCS_DIR"
 cp docs/SERVER.md "$DOCS_DIR/" 2>/dev/null || true
+
+# Cleanup deploy artifacts (one-shot, not needed on running server)
+rm -rf "$PROJECT_DIR/deploy" "$PROJECT_DIR/.gitignore"
+rm -rf "$PROJECT_DIR/.git" "$PROJECT_DIR/.github" "$PROJECT_DIR/requirements.txt"
 
 chown -R "$ORIGINAL_USER:$ORIGINAL_USER" "$PROJECT_DIR"
 

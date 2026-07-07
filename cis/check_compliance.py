@@ -9,10 +9,10 @@ from pathlib import Path
 def check_compliance(threshold: int = 95, audit_file: str = None) -> bool:
     """Проверка compliance score"""
     
-    audit_path = Path(audit_file) if audit_file else Path("cis_data/current_audit.json")
+    audit_path = Path(audit_file) if audit_file else Path("cis/data/current_audit.json")
     
     if not audit_path.exists():
-        print(f"❌ {audit_path} not found. Run `python3 cis_manager.py audit` first.")
+        print(f"❌ {audit_path} not found. Run `python3 cis/manager.py audit` first.")
         return False
     
     with open(audit_path, 'r', encoding='utf-8') as f:
@@ -33,7 +33,7 @@ def check_compliance(threshold: int = 95, audit_file: str = None) -> bool:
     else:
         print(f"❌ Compliance check failed ({score}% < {threshold}%)")
         print(f"\n💡 To fix failed checks:")
-        print(f"   Run: python3 cis_manager.py fix --force")
+        print(f"   Run: python3 cis/manager.py fix --force")
         return False
 
 def main():
@@ -48,7 +48,7 @@ def main():
     )
     parser.add_argument(
         '--audit-file',
-        help="Path to audit JSON file (default: cis_data/current_audit.json)"
+        help="Path to audit JSON file (default: cis/data/current_audit.json)"
     )
     
     args = parser.parse_args()

@@ -26,7 +26,7 @@ Write connection info to `docs/connection.md` (gitignored). **Never write BW_ACC
 
 ## 3. Provisioning Workflow
 
-Execute step by step. Wait for each to complete before the next.
+Execute sequentially:
 
 ```
 1. SSH to server, clone repo, run deploy.sh:
@@ -35,47 +35,76 @@ Execute step by step. Wait for each to complete before the next.
    git clone https://github.com/mlenkov/cloud.ru-free-tier-vm.git
    cd cloud.ru-free-tier-vm
    sudo BW_ACCESS_TOKEN="xxx" bash deploy.sh
-2. Verify output: 59/59 PASS, 100% compliance
-3. Confirm backup system is configured (cron @ 2am)
-4. Update docs/ with results
-5. Report completion
+2. Verify: 59/59 PASS, 100% compliance
+3. Verify backup: cron @ 2am, status (python3 scripts/backup.py status)
+4. Verify AIDE: /var/lib/aide/aide.db exists
+5. Create ADRs in docs/adr/:
+   - 001-cis-debian-12-level-1.md — почему этот профиль
+   - 002-fail2ban-systemd.md — Debian 12, нет auth.log
+   - 003-aide-background-init.md — background + poll
+   - 004-secrets-management.md — BSM + manual .env fallback
+   - 005-3-2-1-backup.md — restic, схема
+   - 006-s3-yandex-optional.md — graceful skip
+   Update docs/adr/INDEX.md
+6. Report completion
 ```
 
-Use `./deploy.sh` as the automation engine. It handles:
+Use `deploy/deploy.sh` as the automation engine. It handles:
 - Dependency installation
-- Secrets sync from Bitwarden
+- Secrets sync from Bitwarden (or skip if no token)
 - CIS audit + fix (all 59 checks)
 - Backup 3-2-1 setup (local + S3 + Yandex Disk)
-- Documentation generation
+- Documentation generation (SERVER.md)
+- Self-cleanup: removes `deploy/`, `.git/`, `.github/`, `.gitignore`, `requirements.txt`
 
-Do NOT modify `deploy.sh`. If it fails, report the error and stop.
+Do NOT modify `deploy/deploy.sh`. If it fails, report the error and stop.
 
-## 4. Available Scripts (for manual steps)
+## 4. ADR Creation
+
+After deploy, create ADRs in `docs/adr/`. Use `docs/adr/000-template.md` as format.
+
+**What to document:**
+
+| ADR | Title | Context (look at) |
+|-----|-------|-------------------|
+| 001 | CIS Debian 12 Level 1 | `cis/standard.yaml`, `cis/manager.py` |
+| 002 | fail2ban backend = systemd | `deploy/deploy.sh` (jail.local generation) |
+| 003 | AIDE background init + poll | `deploy/deploy.sh` (aideinit loop) |
+| 004 | Secrets management | `deploy/secrets.py`, `deploy/deploy.sh` (BSM + .env merge) |
+| 005 | 3-2-1 backup strategy | `backup/config.yaml`, `backup/backup.py` |
+| 006 | S3 + Yandex Disk optional | `backup/backup.py` (graceful skip) |
+
+Each ADR: status → context → decision → alternatives → consequences.
+
+Update `docs/adr/INDEX.md` — add new entries to the table.
+
+## 5. Available Scripts (reference)
 
 ```bash
 # Sync secrets from Bitwarden
-python3 scripts/secrets.py sync
+sudo BW_ACCESS_TOKEN="xxx" python3 deploy/secrets.py sync
 
 # CIS audit + fix
-python3 cis_manager.py audit
-python3 cis_manager.py fix --force
+python3 cis/manager.py audit
+python3 cis/manager.py fix --force
+python3 cis/manager.py rollback
 
 # Backup
-python3 scripts/backup.py create    # Create backup
-python3 scripts/backup.py status    # Check status
+python3 backup/backup.py create    # Create backup 3-2-1
+python3 backup/backup.py status    # Check status + cron
+python3 backup/backup.py list      # List snapshots
+python3 backup/backup.py restore   # Restore from snapshot
 
-# Deploy pipeline test (snapshot → deploy → audit → rollback → report)
-sudo python3 scripts/test_deploy.py                  # Full cycle
-sudo python3 scripts/test_deploy.py --deploy         # Deploy only (dev)
-sudo python3 scripts/test_deploy.py --verify         # Rollback + verify
+# Server docs
+python3 deploy/docs_generator.py   # Generate SERVER.md
 
-# Docs
-python3 scripts/docs_generator.py   # Generate server docs
+# Deploy pipeline test (SSH orchestration with retry)
+sudo python3 deploy/tests/test_deploy.py
 ```
 
-## 5. Key Info Reference
+## 6. Key Info Reference
 
-**Secrets (in Bitwarden Secrets Manager):**
+**Secrets (in Bitwarden Secrets Manager or manual .env):**
 - `cloudru/s3/access_key`, `cloudru/s3/secret_key`
 - `cloudru/s3/bucket`, `cloudru/s3/endpoint`
 - `yandex/disk/token`
@@ -84,6 +113,7 @@ python3 scripts/docs_generator.py   # Generate server docs
 
 **Server paths:**
 - Project: `~/cloud.ru-free-tier-vm/`
+- After deploy: `deploy/`, `.git/`, `.github/`, `.gitignore`, `requirements.txt` — удалены
 - Generated docs: `~/docs/SERVER.md`
 - Backups: `/var/backups/cloud.ru-free-tier-vm/`
 
@@ -93,12 +123,3 @@ python3 scripts/docs_generator.py   # Generate server docs
 - `README.md` (root) — public, no server data
 - `docs/SERVER.md` (server) — live audit data, gitignored
 - `docs/connection.md` — IP/user/key (gitignored), updated manually
-
-## 6. Troubleshooting
-
-| Error | Action |
-|-------|--------|
-| dpkg conffile prompt | Re-run with `DEBIAN_FRONTEND=noninteractive` (already in deploy.sh) |
-| pip externally-managed | deploy.sh uses `--break-system-packages` |
-| aideinit timeout | Runs in background, check `/var/lib/aide/aide.db*` after 5 min |
-| git clone fails | Check SSH key agent or internet connectivity |

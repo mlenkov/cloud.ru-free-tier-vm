@@ -281,65 +281,66 @@ chmod 600 .env
 > [!NOTE]
 > Эти команды предназначены для продвинутого использования, отладки и ежедневных операций. Для первичной настройки достаточно `deploy.sh`.
 
-### `deploy.sh` — полный pipeline (entry point)
-**Что делает:** Установка одной командой. Зависимости, секреты, CIS fix, backup, AIDE, документация.  
+### `deploy/deploy.sh` — полный pipeline (entry point)
+**Что делает:** Установка одной командой. Зависимости, секреты, CIS fix, backup, AIDE, документация.
+После завершения удаляет себя и CI/CD артефакты с сервера.
 **Когда использовать:** Первичная настройка или полный reset сервера.
 
 ```bash
 # С BSM (рекомендуется):
-sudo BW_ACCESS_TOKEN="bws_token_xxx" bash deploy.sh
+sudo BW_ACCESS_TOKEN="bws_token_xxx" bash deploy/deploy.sh
 
 # Без BSM (только локальный backup):
-bash deploy.sh
+bash deploy/deploy.sh
 ```
 
-### `cis_manager.py` — CIS аудит и исправление
-**Что делает:** Проверяет compliance по 59 пунктам CIS Benchmark и применяет исправления.  
+### `cis/manager.py` — CIS аудит и исправление
+**Что делает:** Проверяет compliance по 59 пунктам CIS Benchmark и применяет исправления.
 **Когда использовать:** Регулярные аудиты, откат изменений, форсированное применение fixes.
 
 ```bash
-python3 cis_manager.py audit           # проверить compliance (59 проверок)
-python3 cis_manager.py fix --force     # применить исправления
-python3 cis_manager.py rollback        # откатить последний fix
+python3 cis/manager.py audit           # проверить compliance (59 проверок)
+python3 cis/manager.py fix --force     # применить исправления
+python3 cis/manager.py rollback        # откатить последний fix
 ```
 
-### `scripts/backup.py` — управление 3-2-1 backup
-**Что делает:** Создание, проверка и восстановление бэкапов по стратегии 3-2-1.  
+### `backup/backup.py` — управление 3-2-1 backup
+**Что делает:** Создание, проверка и восстановление бэкапов по стратегии 3-2-1.
 **Когда использовать:** Ручной запуск бэкапа, проверка статусов, аварийное восстановление.
 
 ```bash
-python3 scripts/backup.py create       # создать backup (локально + S3 + Yandex)
-python3 scripts/backup.py status       # статус репозитория и cron
-python3 scripts/backup.py list         # список snapshot-ов
-python3 scripts/backup.py restore      # восстановить из последнего snapshot
+python3 backup/backup.py create        # создать backup (локально + S3 + Yandex)
+python3 backup/backup.py status        # статус репозитория и cron
+python3 backup/backup.py list          # список snapshot-ов
+python3 backup/backup.py restore       # восстановить из последнего snapshot
 ```
 *Backup автоматически запускается по cron в 2:00 ежедневно.*
 
-### `scripts/secrets.py` — управление секретами
-**Что делает:** Синхронизирует секреты из BSM в `.env` (chmod 600), или позволяет создать `.env` вручную.  
+### `deploy/secrets.py` — управление секретами
+**Что делает:** Синхронизирует секреты из BSM в `.env` (chmod 600), или позволяет создать `.env` вручную.
 **Когда использовать:** После изменения секретов в BSM, или при первичной настройке без BSM.
 
 ```bash
-BW_ACCESS_TOKEN=bws_token_xxx python3 scripts/secrets.py sync   # BSM → .env (с мержем)
-BW_ACCESS_TOKEN=bws_token_xxx python3 scripts/secrets.py list   # список ключей в BSM
-BW_ACCESS_TOKEN=bws_token_xxx python3 scripts/secrets.py get cloudru/s3/access-key  # один ключ
+BW_ACCESS_TOKEN=bws_token_xxx python3 deploy/secrets.py sync   # BSM → .env (с мержем)
+BW_ACCESS_TOKEN=bws_token_xxx python3 deploy/secrets.py list   # список ключей в BSM
+BW_ACCESS_TOKEN=bws_token_xxx python3 deploy/secrets.py get cloudru/s3/access-key  # один ключ
 ```
 *Никогда не выводит значения в stdout.*
 
-### `scripts/test_deploy.py` — тест deployment пайплайна
-**Что делает:** Запускает полный цикл тестирования: snapshot → deploy → CIS fix loop → rollback → verify.  
-**Когда использовать:** Перед внесением изменений в pipeline, CI/CD пайплайны.
+### `deploy/tests/test_deploy.py` — тест deployment пайплайна (SSH)
+**Что делает:** Подключается к серверу через `docs/connection.md`, загружает проект,
+запускает deploy, проверяет compliance. При неудаче — откат снапшота и retry-петля.
+**Когда использовать:** Перед внесением изменений в pipeline.
 
 ```bash
-sudo python3 scripts/test_deploy.py               # полный цикл
-sudo python3 scripts/test_deploy.py --deploy      # deploy только (dev)
-sudo python3 scripts/test_deploy.py --verify      # rollback + verify
+sudo python3 deploy/tests/test_deploy.py                # полный цикл с retry
+sudo python3 deploy/tests/test_deploy.py --attempts 5   # максимум 5 попыток
 ```
 
 ### Утилиты
 ```bash
-python3 scripts/check_compliance.py   # Быстрая проверка ключевых параметров безопасности
-python3 scripts/docs_generator.py     # Генерация docs/SERVER.md (live данные сервера)
+python3 cis/check_compliance.py        # Быстрая проверка ключевых параметров безопасности
+python3 deploy/docs_generator.py       # Генерация docs/SERVER.md (live данные сервера)
 ```
 
 ---
@@ -363,21 +364,27 @@ python3 scripts/docs_generator.py     # Генерация docs/SERVER.md (live 
 
 ```text
 cloud.ru-free-tier-vm/
-├── deploy.sh               # Полный pipeline (entry point)
-├── cis_manager.py          # CIS аудит и исправление
-├── scripts/
-│   ├── backup.py           # 3-2-1 backup (local + S3 + Yandex)
-│   ├── secrets.py          # Синхронизация Bitwarden → .env
+├── deploy/                 # Провижининг (однократно, удаляется после deploy)
+│   ├── deploy.sh           # Оркестратор
+│   ├── secrets.py          # Bitwarden sync
 │   ├── docs_generator.py   # Генерация SERVER.md
-│   ├── test_deploy.py      # Тест deployment пайплайна
-│   └── check_compliance.py # Быстрая проверка безопасности
-├── config/
-│   ├── backup.yaml         # Настройки backup
-│   ├── cis_standard.yaml   # 59 CIS проверок
-│   └── templates/
-│       └── server.md       # Шаблон документации
+│   ├── templates/
+│   │   └── server.md       # Шаблон документации
+│   └── tests/
+│       ├── test_deploy.py  # SSH оркестрация + retry
+│       └── test_secrets.py # Unit тесты
+├── cis/                    # Безопасность (на сервере постоянно)
+│   ├── manager.py          # CIS audit + fix
+│   ├── standard.yaml       # 59 CIS проверок
+│   ├── check_compliance.py # Проверка compliance score
+│   └── data/               # Результаты аудита (gitignored)
+├── backup/                 # Бэкапы (на сервере постоянно)
+│   ├── backup.py           # 3-2-1 backup (restic)
+│   └── config.yaml         # Настройки backup
 ├── docs/
-│   ├── GUIDE.md            # Полное руководство по эксплуатации
+│   ├── SERVER.md           # gitignored
+│   ├── connection.md       # gitignored
+│   ├── GUIDE.md            # Полное руководство
 │   └── adr/                # Architectural Decision Records
 ├── AGENTS.md               # Инструкции для AI Employee
 └── README.md               # Этот файл

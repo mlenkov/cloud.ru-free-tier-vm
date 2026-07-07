@@ -33,25 +33,25 @@ jobs:
           sudo apt-get update && sudo apt-get install -y restic
 
       - name: Sync secrets from Bitwarden
-        run: python3 scripts/secrets.py sync
+        run: python3 deploy/secrets.py sync
         env:
           BW_ACCESS_TOKEN: ${{ secrets.BW_ACCESS_TOKEN }}
           BW_ORG_ID: ${{ secrets.BW_ORG_ID }}
 
       - name: Run CIS audit
-        run: python3 cis_manager.py audit --format json
+        run: python3 cis/manager.py audit --format json
 
       - name: Apply CIS fixes
-        run: python3 cis_manager.py fix --force
+        run: python3 cis/manager.py fix --force
 
       - name: Re-audit after fixes
-        run: python3 cis_manager.py audit --format json --output cis_data/audit_after_fix.json
+        run: python3 cis/manager.py audit --format json --output cis/data/audit_after_fix.json
 
       - name: Upload audit report
         uses: actions/upload-artifact@v4
         with:
           name: audit-report
-          path: cis_data/
+          path: cis/data/
           retention-days: 30
 
   verify:
@@ -73,10 +73,10 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: audit-report
-          path: cis_data/
+          path: cis/data/
 
       - name: Check compliance score
-        run: python3 scripts/check_compliance.py --threshold ${{ env.CIS_TARGET }}
+        run: python3 cis/check_compliance.py --threshold ${{ env.CIS_TARGET }}
 
   backup:
     name: Create 3-2-1 Backup
@@ -96,13 +96,13 @@ jobs:
           sudo apt-get update && sudo apt-get install -y restic
 
       - name: Sync secrets
-        run: python3 scripts/secrets.py sync
+        run: python3 deploy/secrets.py sync
         env:
           BW_ACCESS_TOKEN: ${{ secrets.BW_ACCESS_TOKEN }}
           BW_ORG_ID: ${{ secrets.BW_ORG_ID }}
 
       - name: Create backup
-        run: python3 scripts/backup.py create
+        run: python3 backup/backup.py create
         env:
           RESTIC_PASSWORD: ${{ secrets.RESTIC_PASSWORD }}
 
@@ -125,10 +125,10 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: audit-report
-          path: cis_data/
+          path: cis/data/
 
       - name: Generate README
-        run: python3 scripts/docs_generator.py
+        run: python3 deploy/docs_generator.py
 
       - name: Commit documentation
         run: |
