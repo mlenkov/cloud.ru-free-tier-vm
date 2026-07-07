@@ -114,8 +114,9 @@ class SSHClient:
         tmp_tar = tempfile.mktemp(suffix=".tar.gz")
         try:
             subprocess.run(
-                ["tar", "-czf", tmp_tar, "-C", str(PROJECT_DIR), "--exclude=deploy",
-                 "--exclude=.git", "--exclude=__pycache__", "--exclude=*.pyc", "."],
+                ["tar", "-czf", tmp_tar, "-C", str(PROJECT_DIR),
+                 "--exclude=.git", "--exclude=__pycache__", "--exclude=*.pyc",
+                 "--exclude=.test_snapshot", "--exclude=deploy/tests", "."],
                 capture_output=True, text=True, timeout=30, check=True)
             self.run(f"mkdir -p {self.remote_dir}", timeout=10)
             local_tar = f"{self.remote_dir}.tar.gz"
@@ -208,8 +209,8 @@ def verify_cleanup(ssh: SSHClient) -> bool:
     _info("Verifying cleanup...")
     ok = True
     for path in ["deploy", ".gitignore", ".github", "requirements.txt"]:
-        rc, _, _ = ssh.run(f"test -e {ssh.remote_dir}/{path} 2>/dev/null && echo EXISTS || true")
-        if rc == 0:
+        rc, out, _ = ssh.run(f"test -e {ssh.remote_dir}/{path} 2>/dev/null && echo EXISTS || echo GONE")
+        if "EXISTS" in out:
             print(f"  [!] leftover: {path}")
             ok = False
     if ok:
@@ -280,10 +281,6 @@ def main():
                    help=f"Max retry attempts (default: {MAX_ATTEMPTS})")
     p.add_argument("--skip-cleanup", action="store_true", help="Skip deploy artifact cleanup")
     args = p.parse_args()
-
-    if os.geteuid() != 0:
-        print("Must run as root (sudo)")
-        sys.exit(1)
 
     cmd_test(args)
 
