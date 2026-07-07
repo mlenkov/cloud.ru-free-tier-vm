@@ -37,16 +37,41 @@ def _create_client():
     return BWSecretClient(region=region, access_token=token)
 
 
+def _merge_env(existing: dict, secrets: list) -> dict:
+    """Merge existing .env with BSM secrets. BSM values override existing."""
+    merged = dict(existing)
+    if secrets:
+        for s in secrets:
+            merged[s.key] = s.value
+    return merged
+
+
+def _parse_env(text: str) -> dict:
+    """Parse .env file content into a dict."""
+    env = {}
+    for line in text.strip().split("\n"):
+        if "=" in line:
+            k, v = line.split("=", 1)
+            env[k.strip()] = v.strip().strip("'\"")
+    return env
+
+
+def _format_env(env: dict) -> str:
+    """Format dict as .env file content (var='value')."""
+    lines = []
+    for k, v in env.items():
+        escaped = v.replace("'", "'\\''")
+        lines.append(f"{k}='{escaped}'")
+    return "\n".join(lines) + "\n"
+
+
 def cmd_sync(args):
     output_path = Path(args.output) if args.output else Path(".env")
 
     # 1. Read existing .env as base (если есть)
     existing = {}
     if output_path.exists():
-        for line in output_path.read_text().strip().split("\n"):
-            if "=" in line:
-                k, v = line.split("=", 1)
-                existing[k.strip()] = v.strip().strip("'\"")
+        existing = _parse_env(output_path.read_text(encoding="utf-8"))
 
     # 2. BSM override + merge
     client = _create_client()
@@ -54,31 +79,29 @@ def cmd_sync(args):
 
     old_date = datetime(2020, 1, 1, tzinfo=timezone.utc)
     result = client.sync(last_synced_date=old_date)
-    secrets = result if isinstance(result, list) else result.secrets
+    bsm_secrets = result if isinstance(result, list) else result.secrets
 
-    merged = dict(existing)
-    if secrets:
-        print(f"📦 Найдено секретов BSM: {len(secrets)}")
-        for s in secrets:
-            merged[s.key] = s.value
+    if bsm_secrets:
+        print(f"📦 Найдено секретов BSM: {len(bsm_secrets)}")
+        for s in bsm_secrets:
             print(f"  ✅ {s.key}")
 
-    if existing and secrets:
-        overlap = set(existing.keys()) & set(s.key for s in secrets)
+    merged = _merge_env(existing, bsm_secrets)
+
+    if existing and bsm_secrets:
+        overlap = set(existing.keys()) & set(s.key for s in bsm_secrets)
         if overlap:
             print(f"  🔄 BSM перезаписал: {', '.join(overlap)}")
-        print(f"  💾 Сохранено из .env (нет в BSM): {len(set(existing.keys()) - set(s.key for s in secrets))}")
+        kept = set(existing.keys()) - set(s.key for s in bsm_secrets)
+        if kept:
+            print(f"  💾 Сохранено из .env (нет в BSM): {len(kept)}")
 
     if not merged:
         print("⚠️  Секреты не найдены (ни BSM, ни .env)")
         return
 
     # 3. Write merged
-    lines = []
-    for k, v in merged.items():
-        escaped = v.replace("'", "'\\''")
-        lines.append(f"{k}='{escaped}'")
-    output_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    output_path.write_text(_format_env(merged), encoding="utf-8")
     output_path.chmod(0o600)
     print(f"\n✅ Секреты сохранены в {output_path} (chmod 600, {len(merged)} ключей)")
 
