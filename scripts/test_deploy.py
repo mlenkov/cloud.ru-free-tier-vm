@@ -347,7 +347,7 @@ def final_report(snap_before, audit_before, audit_deploy, snap_after, audit_rb=N
     print("  DEPLOY PIPELINE TEST REPORT")
     print("=" * 65)
     print(f"  Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    host, _ = _run_cmd("hostname -f")
+    _, host, _ = _run_cmd("hostname -f")
     print(f"  Server: {host or 'unknown'}\n")
     print("  ── CIS Compliance ──")
     print_audit("Before deploy:", audit_before)
