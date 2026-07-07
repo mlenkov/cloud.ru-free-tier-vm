@@ -30,6 +30,18 @@ fi
 PROJECT_DIR="$ORIGINAL_HOME"
 DOCS_DIR="$ORIGINAL_HOME/docs"
 
+# Auto-relocate if cloned into subdirectory (git clone without .)
+SUB_DIR="$PROJECT_DIR/cloud.ru-free-tier-vm"
+if [ -d "$SUB_DIR" ]; then
+    echo "→ Обнаружена подпапка cloud.ru-free-tier-vm, перемещаю содержимое..."
+    shopt -s dotglob 2>/dev/null || true
+    for f in "$SUB_DIR"/*; do
+        [ -e "$f" ] && mv -f "$f" "$PROJECT_DIR/" 2>/dev/null || true
+    done
+    rmdir "$SUB_DIR" 2>/dev/null || true
+    shopt -u dotglob 2>/dev/null || true
+fi
+
 echo "===== cloud.ru-free-tier-vm — Server Provisioning ====="
 
 # Clean dpkg locks from any previous interrupted install
